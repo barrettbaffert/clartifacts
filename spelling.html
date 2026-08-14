@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Spelling Coach</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Spelling" />
+<meta name="theme-color" content="#0B1524" />
+<link rel="apple-touch-icon" href="icon-spell.png" />
+<link rel="icon" href="icon-spell.png" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; background: #0B1524; color: #EAF2FA;
+    background-image: radial-gradient(1100px 550px at 50% -10%, #14273F 0%, #0B1524 60%);
+    font-family: 'Nunito', sans-serif;
+    padding: calc(env(safe-area-inset-top) + 18px) 16px 40px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .kick { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 3px;
+    font-size: 12px; color: #9FB2C8; font-weight: 700; text-align: center; }
+  h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; letter-spacing: 1px;
+    font-size: clamp(34px, 8vw, 48px); margin: 4px 0 6px; text-align: center; }
+  h1 .acc { color: #7FD1FF; }
+  .sub { color: #9FB2C8; text-align: center; margin: 0 auto 18px; max-width: 440px;
+    font-size: 14.5px; line-height: 1.5; }
+  .panel { background: #101F33; border: 1px solid #1D3450; border-radius: 16px;
+    padding: 18px; margin-bottom: 14px; }
+  .label { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-size: 12px;
+    color: #9FB2C8; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-weight: 800; font-size: 13.5px; border-radius: 999px; padding: 9px 14px;
+    min-height: 40px; cursor: pointer; background: transparent; color: #EAF2FA;
+    border: 1px solid #1D3450; font-family: 'Nunito', sans-serif; }
+  .chip.on { background: #7FD1FF; color: #0A1420; border-color: #7FD1FF; }
+  .best { font-size: 13px; color: #9FB2C8; margin-top: 10px; }
+  .btn { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px;
+    border-radius: 14px; padding: 14px 18px; min-height: 52px; cursor: pointer;
+    border: 1px solid transparent; width: 100%; }
+  .btn.primary { background: #7FD1FF; color: #0A1420; }
+  .btn.yellow { background: #F2F94F; color: #0A1420; }
+  .btn.ghost { background: transparent; color: #EAF2FA; border-color: #1D3450; }
+  .btn:active { transform: scale(0.98); }
+  .row { display: flex; gap: 10px; }
+  .row .btn { flex: 1; }
+  .hidden { display: none !important; }
+
+  /* test screen */
+  .progressBar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.1);
+    overflow: hidden; margin-bottom: 6px; }
+  .progressFill { height: 100%; background: #7FD1FF; width: 0%; transition: width .3s ease; }
+  .counts { display: flex; justify-content: space-between; font-size: 12.5px;
+    color: #9FB2C8; margin-bottom: 14px; }
+  .speakBox { text-align: center; padding: 8px 0 4px; }
+  .bigSpeak { font-size: 64px; background: none; border: none; cursor: pointer; }
+  .speakHint { color: #9FB2C8; font-size: 13px; margin-top: 2px; }
+  .sentenceBtn { margin-top: 10px; }
+  input[type="text"] {
+    width: 100%; margin-top: 16px; padding: 16px; border-radius: 14px;
+    border: 2px solid #1D3450; background: #0A1420; color: #EAF2FA;
+    font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 800;
+    text-align: center; letter-spacing: 2px; outline: none;
+  }
+  input[type="text"]:focus { border-color: #7FD1FF; }
+  input.good { border-color: #43D97B; }
+  input.bad { border-color: #FF6E5E; }
+  .verdict { text-align: center; margin-top: 14px; min-height: 30px; }
+  .vGood { color: #43D97B; font-weight: 800; font-size: 20px; }
+  .vBad { color: #FF9C5B; font-weight: 800; font-size: 16px; }
+  .reveal { margin-top: 10px; text-align: center; }
+  .reveal .letters { font-size: 30px; font-weight: 800; letter-spacing: 4px; }
+  .reveal .letters .ok { color: #43D97B; }
+  .reveal .letters .no { color: #FF6E5E; text-decoration: underline; }
+  .typed { color: #6E819A; text-decoration: line-through; font-size: 16px; margin-top: 4px; }
+  .streakNote { color: #9FB2C8; font-size: 12.5px; margin-top: 8px; text-align: center; }
+
+  /* results */
+  .scoreBig { font-family: 'Barlow Condensed', sans-serif; font-size: 64px; font-weight: 800;
+    text-align: center; margin: 6px 0; }
+  .trouble { margin-top: 8px; }
+  .trouble .w { display: inline-block; background: rgba(255,110,94,0.12); color: #FFD9BE;
+    border-radius: 999px; padding: 6px 12px; margin: 4px 4px 0 0; font-weight: 800; font-size: 14px; }
+  .center { text-align: center; }
+  a.home { color: #9FB2C8; font-size: 13px; display: block; text-align: center;
+    margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">HEAR IT · SPELL IT · BEAT IT</div>
+  <h1>SPELLING <span class="acc">COACH</span></h1>
+
+  <!-- HOME -->
+  <div id="scrHome">
+    <p class="sub">Tap start, listen to the word, type the spelling. Miss one and it
+      comes back until you get it right <b>twice</b>.</p>
+    <div class="panel">
+      <div class="label">Test date</div>
+      <div class="chips" id="listChips"></div>
+      <div class="best" id="bestLine"></div>
+      <div class="best" id="voiceLine">Checking speech voices…</div>
+      <button class="chip" id="btnTestVoice" style="margin-top:8px">🔊 Test voice</button>
+    </div>
+    <button class="btn primary" id="btnStart">🔊 Start practice</button>
+    <a class="home" href="index.html">← home</a>
+  </div>
+
+  <!-- TEST -->
+  <div id="scrTest" class="hidden">
+    <div class="progressBar"><div class="progressFill" id="fill"></div></div>
+    <div class="counts"><span id="cMastered">0 mastered</span><span id="cLeft"></span></div>
+    <div class="panel">
+      <div class="speakBox">
+        <button class="bigSpeak" id="btnSpeak">🔊</button>
+        <div class="speakHint">tap to hear again</div>
+        <button class="btn ghost sentenceBtn" id="btnSentence">🗣️ Use it in a sentence</button>
+      </div>
+      <input type="text" id="answer" autocomplete="off" autocorrect="off"
+        autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="type it here" />
+      <div class="verdict" id="verdict"></div>
+      <div class="reveal hidden" id="reveal"></div>
+    </div>
+    <button class="btn yellow" id="btnCheck">Check ✓</button>
+    <button class="btn primary hidden" id="btnNext">Got it — next word →</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="scrDone" class="hidden">
+    <div class="panel center">
+      <div class="label">First-try score</div>
+      <div class="scoreBig" id="scoreBig"></div>
+      <div id="scoreMsg" class="sub" style="margin-bottom:0"></div>
+      <div class="trouble" id="troubleBox"></div>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="btnAgain">Practice again</button>
+      <button class="btn primary hidden" id="btnHard">Trouble words only</button>
+    </div>
+    <a class="home" href="index.html">← home</a>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   WORD LISTS — add new tests here (newest anywhere; sorted by date)
+   ============================================================ */
+const LISTS = [
+  {
+    id: "2026-08-14",
+    label: "Fri 8/14",
+    words: [
+      ["pattern",  "The tile floor has a checkered pattern."],
+      ["album",    "We looked through the photo album."],
+      ["labor",    "Building the fence took hours of labor."],
+      ["vacation", "Our family took a vacation to the beach."],
+      ["exactly",  "The two answers were exactly the same."],
+      ["chapter",  "Read the first chapter tonight."],
+      ["survey",   "The class took a survey about lunch choices."],
+      ["detain",   "The traffic delay could detain the passengers."],
+      ["rapid",    "The river's current was rapid."],
+      ["cancel",   "Rain made them cancel the game."],
+      ["obtain",   "You must obtain a permit to fish here."],
+      ["admit",    "He had to admit the mistake."],
+      ["trait",    "Kindness is her best trait."],
+      ["accent",   "She speaks with a soft southern accent."],
+      ["complain", "Please don't complain about the food."],
+      ["advance",  "The team began to advance down the field."],
+      ["natural",  "The park protects the natural landscape."],
+      ["daydream", "He began to daydream during class."],
+      ["favorite", "Pizza is my favorite dinner."],
+      ["behave",   "The puppy learned to behave."]
+    ]
+  },
+];
+
+/* ---------------- state ---------------- */
+const $ = (id) => document.getElementById(id);
+let activeList = pickDefaultList();
+let queue = [], stats = {}, current = null, firstTry = {}, hardMode = false;
+
+function pickDefaultList() {
+  const today = new Date().toISOString().slice(0, 10);
+  const sorted = [...LISTS].sort((a, b) => a.id.localeCompare(b.id));
+  return (sorted.find((l) => l.id >= today) || sorted[sorted.length - 1]).id;
+}
+function getList() { return LISTS.find((l) => l.id === activeList); }
+
+/* ---------------- speech ---------------- */
+let voice = null;
+function loadVoice() {
+  const all = speechSynthesis.getVoices();
+  const vs = all.filter((v) => v.lang && v.lang.startsWith("en"));
+  voice =
+    vs.find((v) => v.name.includes("Samantha")) ||
+    vs.find((v) => v.lang === "en-US" && v.localService) ||
+    vs.find((v) => v.lang === "en-US") ||
+    vs[0] || null;
+  const vl = document.getElementById("voiceLine");
+  if (vl) {
+    vl.textContent = !("speechSynthesis" in window)
+      ? "⚠️ This browser has no speech support."
+      : all.length === 0
+        ? "⚠️ No speech voices loaded (yet) — tap Test voice."
+        : "Voice: " + (voice ? voice.name + " (" + voice.lang + ")" : "browser default") +
+          " · " + all.length + " installed";
+  }
+}
+if ("speechSynthesis" in window) {
+  loadVoice();
+  speechSynthesis.onvoiceschanged = loadVoice;
+}
+function say(text, rate) {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    // Desktop Chrome: cancel()+speak() in the same tick silently drops the
+    // utterance, and the engine can get stuck paused. Resume + delay fixes both.
+    setTimeout(() => {
+      try {
+        if (!voice) loadVoice();
+        const u = new SpeechSynthesisUtterance(text);
+        if (voice) u.voice = voice;
+        u.rate = rate || 0.85;
+        u.volume = 1;
+        speechSynthesis.resume();
+        speechSynthesis.speak(u);
+      } catch (e) {}
+    }, 80);
+  } catch (e) {}
+}
+
+/* ---------------- storage ---------------- */
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem("spelling-coach") || "{}"); }
+  catch (e) { return {}; }
+}
+function save(data) {
+  try { localStorage.setItem("spelling-coach", JSON.stringify(data)); } catch (e) {}
+}
+
+/* ---------------- home ---------------- */
+function renderHome() {
+  const chips = $("listChips");
+  chips.innerHTML = "";
+  [...LISTS].sort((a, b) => b.id.localeCompare(a.id)).forEach((l) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (l.id === activeList ? " on" : "");
+    b.textContent = "Test " + l.label + " · " + l.words.length + " words";
+    b.onclick = () => { activeList = l.id; renderHome(); };
+    chips.appendChild(b);
+  });
+  const saved = loadSaved()[activeList];
+  $("bestLine").textContent = saved && saved.best != null
+    ? "Best first-try score: " + saved.best + "/" + getList().words.length
+    : "No attempts yet on this list.";
+}
+
+/* ---------------- test flow ---------------- */
+function startTest(words) {
+  queue = [...words].sort(() => Math.random() - 0.5);
+  stats = {}; firstTry = {};
+  queue.forEach(([w]) => { stats[w] = { misses: 0, streak: 0 }; });
+  show("scrTest");
+  nextWord();
+}
+
+function show(id) {
+  ["scrHome", "scrTest", "scrDone"].forEach((s) => $(s).classList.add("hidden"));
+  $(id).classList.remove("hidden");
+}
+
+function masteredCount() {
+  return Object.keys(firstTry).length
+    ? Object.keys(stats).filter((w) => done(w)).length : 0;
+}
+function done(w) {
+  const s = stats[w];
+  return s.streak >= (s.misses > 0 ? 2 : 1);
+}
+
+function updateHud() {
+  const total = getList().words.length;
+  const m = Object.keys(stats).filter(done).length;
+  $("fill").style.width = (hardMode
+    ? (m / Object.keys(stats).length) * 100
+    : (m / total) * 100) + "%";
+  $("cMastered").textContent = m + " mastered";
+  $("cLeft").textContent = queue.length + " in queue";
+}
+
+function nextWord() {
+  updateHud();
+  if (!queue.length) { finish(); return; }
+  current = queue.shift();
+  $("answer").value = "";
+  $("answer").className = "";
+  $("answer").disabled = false;
+  $("verdict").innerHTML = "";
+  $("reveal").classList.add("hidden");
+  $("btnCheck").classList.remove("hidden");
+  $("btnNext").classList.add("hidden");
+  say(current[0]);
+  setTimeout(() => $("answer").focus(), 60);
+}
+
+function check() {
+  const typed = $("answer").value.trim().toLowerCase();
+  if (!typed) { say(current[0]); return; }
+  const word = current[0];
+  const s = stats[word];
+  if (!(word in firstTry)) firstTry[word] = typed === word;
+
+  if (typed === word) {
+    s.streak++;
+    $("answer").className = "good";
+    if (done(word)) {
+      $("verdict").innerHTML = '<span class="vGood">✓ Nailed it!</span>';
+    } else {
+      $("verdict").innerHTML = '<span class="vGood">✓ Correct — one more to clear it</span>';
+      queue.splice(Math.min(3, queue.length), 0, current);
+    }
+    $("answer").disabled = true;
+    setTimeout(nextWord, 950);
+  } else {
+    s.misses++; s.streak = 0;
+    $("answer").className = "bad";
+    $("answer").disabled = true;
+    $("verdict").innerHTML = '<span class="vBad">Not quite — study it:</span>';
+    const letters = word.split("").map((ch, i) =>
+      '<span class="' + (typed[i] === ch ? "ok" : "no") + '">' + ch + "</span>").join("");
+    $("reveal").innerHTML = '<div class="letters">' + letters + '</div>' +
+      '<div class="typed">' + typed + '</div>' +
+      '<div class="streakNote">This word comes back until you spell it right twice in a row.</div>';
+    $("reveal").classList.remove("hidden");
+    $("btnCheck").classList.add("hidden");
+    $("btnNext").classList.remove("hidden");
+    queue.splice(Math.min(3, queue.length), 0, current);
+    queue.push(current);
+    // de-dupe: keep at most 2 pending copies
+    let seen = 0;
+    queue = queue.filter(([w]) => w !== word || ++seen <= 2);
+  }
+  updateHud();
+}
+
+function finish() {
+  const list = getList();
+  const total = list.words.length;
+  const score = Object.values(firstTry).filter(Boolean).length;
+  const troubles = Object.keys(stats).filter((w) => stats[w].misses > 0);
+
+  if (!hardMode) {
+    const data = loadSaved();
+    const prev = data[activeList] || {};
+    data[activeList] = {
+      best: Math.max(prev.best ?? 0, score),
+      trouble: troubles,
+    };
+    save(data);
+    $("scoreBig").textContent = score + "/" + total;
+    $("scoreMsg").textContent =
+      score === total ? "Perfect first tries. That test is toast. 🎉" :
+      score >= total - 3 ? "So close — knock out the trouble words below." :
+      "Good work — the trouble words below are your hit list.";
+  } else {
+    $("scoreBig").textContent = "💪";
+    $("scoreMsg").textContent = troubles.length
+      ? "Still a few stragglers — run it again."
+      : "Trouble words cleared. Run the full list once more to lock it in.";
+  }
+
+  const tb = $("troubleBox");
+  tb.innerHTML = troubles.length
+    ? '<div class="label" style="margin-top:12px">Trouble words</div>' +
+      troubles.map((w) => '<span class="w">' + w + "</span>").join("")
+    : "";
+  $("btnHard").classList.toggle("hidden", !troubles.length);
+  window._troubles = troubles;
+  show("scrDone");
+}
+
+/* ---------------- wiring ---------------- */
+$("btnStart").onclick = () => { hardMode = false; say("Let's practice spelling!", 1); startTest(getList().words); };
+$("btnTestVoice").onclick = () => { loadVoice(); say("Testing, one two three. If you hear this, we're good.", 1); };
+$("btnSpeak").onclick = () => say(current[0]);
+$("btnSentence").onclick = () => say(current[1], 0.95);
+$("btnCheck").onclick = check;
+$("btnNext").onclick = nextWord;
+$("answer").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    if (!$("btnNext").classList.contains("hidden")) nextWord();
+    else check();
+  }
+});
+$("btnAgain").onclick = () => { hardMode = false; startTest(getList().words); };
+$("btnHard").onclick = () => {
+  hardMode = true;
+  const tw = getList().words.filter(([w]) => (window._troubles || []).includes(w));
+  startTest(tw);
+};
+
+renderHome();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}</script>
+</body>
+</html>

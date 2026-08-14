@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>clartifacts</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="clartifacts" />
+<meta name="theme-color" content="#0B1524" />
+<link rel="apple-touch-icon" href="icon-shrimp.png" />
+<link rel="icon" href="icon-shrimp.png" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; background: #0B1524; color: #EAF2FA;
+    background-image: radial-gradient(1100px 550px at 50% -10%, #14273F 0%, #0B1524 60%);
+    font-family: 'Nunito', sans-serif;
+    padding: calc(env(safe-area-inset-top) + 18px) 16px 40px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  .kick { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 3px;
+    font-size: 12px; color: #9FB2C8; font-weight: 700; text-align: center; }
+  h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; letter-spacing: 1px;
+    font-size: clamp(36px, 8vw, 54px); margin: 4px 0 6px; text-align: center; }
+  h1 .shrimp { font-size: 0.8em; }
+  .sub { color: #9FB2C8; text-align: center; margin: 0 auto 20px; max-width: 520px;
+    font-size: 14.5px; line-height: 1.5; }
+  .filters { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .chip { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13.5px;
+    border-radius: 999px; padding: 9px 16px; min-height: 40px; cursor: pointer;
+    background: transparent; color: #EAF2FA; border: 1px solid #1D3450; }
+  .chip.on { background: #F2F94F; color: #0A1420; border-color: #F2F94F; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card { display: block; text-decoration: none; color: #EAF2FA; background: #101F33;
+    border: 1px solid #1D3450; border-radius: 16px; padding: 16px;
+    transition: transform .12s ease, border-color .12s ease; }
+  .card:hover { transform: translateY(-2px); border-color: #F2F94F; }
+  .cardTop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .emoji { font-size: 30px; line-height: 1; }
+  .tag { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-size: 11px;
+    font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+  .tag.soccer { color: #F2F94F; border: 1px solid rgba(242,249,79,.45); }
+  .tag.school { color: #7FD1FF; border: 1px solid rgba(127,209,255,.45); }
+  .title { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 800;
+    margin: 2px 0 4px; }
+  .desc { color: #9FB2C8; font-size: 13.5px; line-height: 1.5; min-height: 40px; }
+  .date { margin-top: 10px; font-size: 12px; color: #6E819A; }
+  .empty { text-align: center; color: #9FB2C8; padding: 40px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">LITTLE APPS, SHIPPED FROM CHATS</div>
+  <h1><span class="shrimp">🦐</span> CLARTIFACTS</h1>
+  <p class="sub">A family bucket of tools and games. Tap a card to open it — then use
+    Share&nbsp;→&nbsp;Add to Home Screen to install it like an app.</p>
+
+  <div class="filters" id="filters"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">Nothing in this category yet.</div>
+</div>
+
+<script>
+/* ============================================================
+   MANIFEST — add new pages here (newest anywhere; sorting is automatic)
+   category: "soccer" | "school"
+   created: YYYY-MM-DD
+   ============================================================ */
+const PAGES = [
+  {
+    title: "Spelling Coach",
+    emoji: "✏️",
+    category: "school",
+    created: "2026-08-13",
+    desc: "Hear-and-type spelling practice with test-day word lists. Missed words come back until you beat them twice.",
+    href: "spelling.html"
+  },
+  {
+    title: "Space Finder 2v2",
+    emoji: "⚽",
+    category: "soccer",
+    created: "2026-08-04",
+    desc: "Small-sided decision trainer. Watch the play, tap the smartest space before the whistle.",
+    href: "space-finder-2v2.html"
+  },
+];
+
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "soccer", label: "⚽ Soccer" },
+  { id: "school", label: "📚 School" },
+];
+let active = "all";
+
+const fmt = (iso) => new Date(iso + "T12:00:00").toLocaleDateString(undefined,
+  { month: "short", day: "numeric", year: "numeric" });
+
+function render() {
+  const f = document.getElementById("filters");
+  f.innerHTML = "";
+  FILTERS.forEach((x) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (active === x.id ? " on" : "");
+    b.textContent = x.label;
+    b.onclick = () => { active = x.id; render(); };
+    f.appendChild(b);
+  });
+
+  const list = PAGES
+    .filter((p) => active === "all" || p.category === active)
+    .sort((a, b) => b.created.localeCompare(a.created));
+
+  const g = document.getElementById("grid");
+  g.innerHTML = "";
+  list.forEach((p) => {
+    const a = document.createElement("a");
+    a.className = "card";
+    a.href = p.href;
+    a.innerHTML = `
+      <div class="cardTop">
+        <span class="emoji">${p.emoji}</span>
+        <span class="tag ${p.category}">${p.category.toUpperCase()}</span>
+      </div>
+      <div class="title">${p.title}</div>
+      <div class="desc">${p.desc}</div>
+      <div class="date">Added ${fmt(p.created)}</div>`;
+    g.appendChild(a);
+  });
+  document.getElementById("empty").style.display = list.length ? "none" : "block";
+}
+render();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}</script>
+</body>
+</html>
