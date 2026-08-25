@@ -39,6 +39,10 @@
     border: 1px solid #1D3450; font-family: 'Nunito', sans-serif; }
   .chip.on { background: #7FD1FF; color: #0A1420; border-color: #7FD1FF; }
   .best { font-size: 13px; color: #9FB2C8; margin-top: 10px; }
+  select.voiceSel { width: 100%; margin-top: 10px; padding: 11px 12px; border-radius: 12px;
+    border: 1px solid #1D3450; background: #0A1420; color: #EAF2FA; min-height: 44px;
+    font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; }
+  select.voiceSel:focus { border-color: #7FD1FF; outline: none; }
   .btn { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px;
     border-radius: 14px; padding: 14px 18px; min-height: 52px; cursor: pointer;
     border: 1px solid transparent; width: 100%; }
@@ -104,7 +108,11 @@
       <div class="chips" id="listChips"></div>
       <div class="best" id="bestLine"></div>
       <div class="best" id="voiceLine">Checking speech voices…</div>
-      <button class="chip" id="btnTestVoice" style="margin-top:8px">🔊 Test voice</button>
+      <select class="voiceSel" id="voiceSelect" aria-label="Choose a voice"></select>
+      <div class="chips" style="margin-top:8px">
+        <button class="chip" id="btnPreviewVoice">▶ Preview</button>
+        <button class="chip" id="btnTestVoice">🔊 Test voice</button>
+      </div>
     </div>
     <button class="btn primary" id="btnStart">🔊 Start practice</button>
     <a class="home" href="index.html">← home</a>
@@ -243,15 +251,61 @@ function pickDefaultList() {
 function getList() { return LISTS.find((l) => l.id === activeList); }
 
 /* ---------------- speech ---------------- */
+const VOICE_KEY = "spelling-coach-voice";
 let voice = null;
+
+function loadVoiceName() {
+  try { return localStorage.getItem(VOICE_KEY) || ""; } catch (e) { return ""; }
+}
+function saveVoiceName(name) {
+  try { localStorage.setItem(VOICE_KEY, name); } catch (e) {}
+}
+
+/* Higher is better. iOS ships "Compact" (low-quality) variants alongside the
+   downloadable "Enhanced"/"Premium" ones, so rank those to the bottom/top. */
+const GOOD_VOICES = /^(Ava|Samantha|Allison|Susan|Alex|Tom|Karen|Daniel|Serena|Moira|Fiona|Nicky|Aaron)\b/i;
+function voiceScore(v) {
+  const n = v.name || "";
+  let s = 0;
+  if (/compact/i.test(n)) s -= 100;
+  if (/enhanced|premium/i.test(n)) s += 100;
+  // Tie-break only: macOS lists novelty voices ("Bad News", "Bahh") that score
+  // the same as Samantha on lang/localService alone. Keep real ones on top.
+  if (GOOD_VOICES.test(n)) s += 20;
+  if (v.localService) s += 10;
+  if (v.lang === "en-US") s += 5;
+  return s;
+}
+
+function englishVoices() {
+  return speechSynthesis.getVoices()
+    .filter((v) => v.lang && v.lang.toLowerCase().indexOf("en") === 0);
+}
+function rankedVoices() {
+  return englishVoices()
+    .map((v, i) => ({ v: v, i: i, s: voiceScore(v) }))
+    .sort((a, b) => (b.s - a.s) || (a.i - b.i))
+    .map((x) => x.v);
+}
+
 function loadVoice() {
   const all = speechSynthesis.getVoices();
-  const vs = all.filter((v) => v.lang && v.lang.startsWith("en"));
+  const en = englishVoices();
+  const ranked = rankedVoices();
+  const saved = loadVoiceName();
   voice =
-    vs.find((v) => v.name.includes("Samantha")) ||
-    vs.find((v) => v.lang === "en-US" && v.localService) ||
-    vs.find((v) => v.lang === "en-US") ||
-    vs[0] || null;
+    (saved && all.find((v) => v.name === saved)) ||
+    ranked[0] ||
+    // fallback chain — still works if nothing great is installed
+    en.find((v) => v.name.includes("Samantha")) ||
+    en.find((v) => v.lang === "en-US" && v.localService) ||
+    en.find((v) => v.lang === "en-US") ||
+    en[0] || all[0] || null;
+  renderVoiceUI();
+}
+
+function renderVoiceUI() {
+  const all = speechSynthesis.getVoices();
   const vl = document.getElementById("voiceLine");
   if (vl) {
     vl.textContent = !("speechSynthesis" in window)
@@ -261,29 +315,84 @@ function loadVoice() {
         : "Voice: " + (voice ? voice.name + " (" + voice.lang + ")" : "browser default") +
           " · " + all.length + " installed";
   }
+  const sel = document.getElementById("voiceSelect");
+  if (!sel) return;
+  const list = rankedVoices();
+  sel.innerHTML = "";
+  if (!list.length) {
+    const o = document.createElement("option");
+    o.textContent = "No English voices found yet";
+    sel.appendChild(o);
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  list.forEach((v) => {
+    const o = document.createElement("option");
+    o.value = v.name;
+    o.textContent = v.name + " (" + v.lang + ")";
+    if (voice && v.name === voice.name) o.selected = true;
+    sel.appendChild(o);
+  });
 }
+
 if ("speechSynthesis" in window) {
   loadVoice();
+  // iOS populates voices asynchronously — refresh the picker when they land.
   speechSynthesis.onvoiceschanged = loadVoice;
 }
-function say(text, rate) {
+
+/* Speak a sequence of parts back-to-back: [{ text, rate, gap }].
+   `gap` is the pause (ms) after that part. A newer call supersedes an older
+   one via the sequence token, so stale chains stop cleanly. */
+let speechSeq = 0;
+function sayParts(parts) {
   try {
     if (!("speechSynthesis" in window)) return;
+    const turn = ++speechSeq;
     speechSynthesis.cancel();
     // Desktop Chrome: cancel()+speak() in the same tick silently drops the
     // utterance, and the engine can get stuck paused. Resume + delay fixes both.
     setTimeout(() => {
+      if (turn !== speechSeq) return;
       try {
         if (!voice) loadVoice();
-        const u = new SpeechSynthesisUtterance(text);
-        if (voice) u.voice = voice;
-        u.rate = rate || 0.85;
-        u.volume = 1;
-        speechSynthesis.resume();
-        speechSynthesis.speak(u);
+        const step = (i) => {
+          if (turn !== speechSeq || i >= parts.length) return;
+          const p = parts[i];
+          try {
+            const u = new SpeechSynthesisUtterance(p.text);
+            if (voice) u.voice = voice;
+            u.rate = p.rate || 0.85;
+            u.volume = 1;
+            let moved = false;
+            const advance = () => {
+              if (moved || turn !== speechSeq) return;
+              moved = true;
+              setTimeout(() => step(i + 1), p.gap || 0);
+            };
+            u.onend = advance;
+            u.onerror = advance;
+            speechSynthesis.resume();
+            speechSynthesis.speak(u);
+          } catch (e) {}
+        };
+        step(0);
       } catch (e) {}
     }, 80);
   } catch (e) {}
+}
+
+function say(text, rate) { sayParts([{ text: text, rate: rate }]); }
+
+/* Word → pause → sentence → pause → word again. */
+function sayWord() {
+  if (!current) return;
+  sayParts([
+    { text: current[0], rate: 0.85, gap: 700 },
+    { text: current[1], rate: 0.95, gap: 400 },
+    { text: current[0], rate: 0.85 }
+  ]);
 }
 
 /* ---------------- storage ---------------- */
@@ -356,7 +465,7 @@ function nextWord() {
   $("reveal").classList.add("hidden");
   $("btnCheck").classList.remove("hidden");
   $("btnNext").classList.add("hidden");
-  say(current[0]);
+  sayWord();
   setTimeout(() => $("answer").focus(), 60);
 }
 
@@ -439,7 +548,15 @@ function finish() {
 /* ---------------- wiring ---------------- */
 $("btnStart").onclick = () => { hardMode = false; say("Let's practice spelling!", 1); startTest(getList().words); };
 $("btnTestVoice").onclick = () => { loadVoice(); say("Testing, one two three. If you hear this, we're good.", 1); };
-$("btnSpeak").onclick = () => say(current[0]);
+$("voiceSelect").onchange = (e) => {
+  const v = speechSynthesis.getVoices().find((x) => x.name === e.target.value);
+  if (!v) return;
+  voice = v;
+  saveVoiceName(v.name);
+  renderVoiceUI();
+};
+$("btnPreviewVoice").onclick = () => say("vacation", 0.9);
+$("btnSpeak").onclick = () => sayWord();
 $("btnSentence").onclick = () => say(current[1], 0.95);
 $("btnCheck").onclick = check;
 $("btnNext").onclick = nextWord;
