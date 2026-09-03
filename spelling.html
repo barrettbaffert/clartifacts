@@ -289,10 +289,14 @@ function saveVoiceName(name) {
 
 /* Higher is better. iOS ships "Compact" (low-quality) variants alongside the
    downloadable "Enhanced"/"Premium" ones, so rank those to the bottom/top. */
+const PREFERRED_VOICE = /^Karen\b/i;   // the default we want when it's installed
 const GOOD_VOICES = /^(Ava|Samantha|Allison|Susan|Alex|Tom|Karen|Daniel|Serena|Moira|Fiona|Nicky|Aaron)\b/i;
 function voiceScore(v) {
   const n = v.name || "";
   let s = 0;
+  // Outweighs everything else, so any Karen wins — but Enhanced/Compact below
+  // still decides *which* Karen when more than one is installed.
+  if (PREFERRED_VOICE.test(n)) s += 300;
   if (/compact/i.test(n)) s -= 100;
   if (/enhanced|premium/i.test(n)) s += 100;
   // Tie-break only: macOS lists novelty voices ("Bad News", "Bahh") that score
@@ -323,6 +327,7 @@ function loadVoice() {
     (saved && all.find((v) => v.name === saved)) ||
     ranked[0] ||
     // fallback chain — still works if nothing great is installed
+    en.find((v) => v.name.includes("Karen")) ||
     en.find((v) => v.name.includes("Samantha")) ||
     en.find((v) => v.lang === "en-US" && v.localService) ||
     en.find((v) => v.lang === "en-US") ||
