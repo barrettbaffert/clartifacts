@@ -68,40 +68,56 @@
   .pickCard .pk { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
   .pickCard .pd { color: #9FB2C8; font-size: 12.5px; line-height: 1.4; margin-top: 2px; }
 
-  .playRow { display: flex; gap: 16px; width: 100%; max-width: 1200px; align-items: stretch; }
-  .pitchCol { flex: 1 1 auto; min-width: 0; align-self: center; display: flex;
-    flex-direction: column; gap: 10px; width: 100%; }
-  .pitchWrap { position: relative; width: 100%; aspect-ratio: 100 / 64;
-    border-radius: 16px; overflow: hidden; border: 1px solid #1D3450;
+  .playCol { width: 100%; max-width: 1480px; display: flex; flex-direction: column; gap: 10px; align-self: flex-start; }
+  .topBar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .topBar .scnTitle { font-size: 28px; }
+  .topBar .meta { font-size: 12.5px; color: #9FB2C8; }
+  .situationBar { font-size: 15.5px; line-height: 1.5; color: #EAF2FA; margin: 0; max-width: 1100px; }
+  .pitchWrap { position: relative; width: clamp(300px, calc((100vh - 232px) * 1.5625), 100%); margin: 0 auto;
+    aspect-ratio: 100 / 64; border-radius: 16px; overflow: hidden; border: 1px solid #1D3450;
     box-shadow: 0 12px 40px rgba(0,0,0,0.45); }
   @supports not (aspect-ratio: 1) {
     .pitchWrap { height: 0; padding-bottom: 64%; }
     .pitchWrap > svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   }
   .pitchWrap > svg { width: 100%; height: 100%; display: block; }
-  .legend { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ctrlRow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; min-height: 48px; }
+  .ctrlRow .hint { font-size: 14px; }
   .legendChip { display: flex; align-items: center; gap: 8px; background: rgba(10,20,32,0.8);
     border: 1px solid #F2F94F; color: #F2F94F; border-radius: 999px;
     padding: 6px 14px 6px 6px; font-family: 'Nunito', sans-serif; font-weight: 800;
-    font-size: 13.5px; cursor: pointer; min-height: 40px; }
+    font-size: 13.5px; cursor: pointer; min-height: 40px; text-align: left; }
   .legendChip:active { transform: scale(0.97); }
+  .legendChip.dimmed { opacity: 0.4; }
+  .legendChip.picked { background: #F2F94F; color: #0A1420; }
+  .legendChip.picked .legendNum { background: #0A1420; color: #F2F94F; }
   .legendNum { width: 26px; height: 26px; border-radius: 999px; background: #F2F94F;
     color: #0A1420; display: flex; align-items: center; justify-content: center;
     font-weight: 800; font-size: 13.5px; flex: 0 0 26px; }
-  .side { width: 330px; flex: 0 0 330px; background: #101F33;
-    border: 1px solid #1D3450; border-radius: 16px; padding: 16px;
-    display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 86vh; }
-  .crumb { display: flex; justify-content: space-between; align-items: center; }
   .crumbTag { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px;
     font-size: 11px; color: #F2F94F; font-weight: 700; }
   .scnTitle { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; line-height: 1.05; }
-  .scnCount { font-size: 12px; color: #9FB2C8; }
-  .situation { font-size: 14.5px; line-height: 1.5; color: #EAF2FA; margin: 2px 0; }
   .hint { color: #9FB2C8; font-size: 13px; font-weight: 700; }
   .hint.bright { color: #F2F94F; }
   .timerBox { display: flex; align-items: center; gap: 10px; }
   .timerLabel { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 3px;
     font-weight: 800; color: #9FB2C8; font-size: 14px; }
+
+  .sheet { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 60;
+    width: min(640px, calc(100% - 20px)); max-height: 74vh; overflow-y: auto;
+    background: #101F33; border: 1px solid #1D3450; border-bottom: none; border-radius: 18px 18px 0 0;
+    padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px rgba(0,0,0,0.55);
+    animation: sheetUp .22s ease-out; }
+  .sheet[hidden] { display: none; }
+  .sheetHandle { width: 44px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.22); margin: 0 auto 10px; }
+  .sheetClose { position: absolute; top: 8px; right: 10px; width: 34px; height: 34px; border-radius: 999px;
+    border: 1px solid #1D3450; background: rgba(10,20,32,0.6); color: #EAF2FA; font-size: 18px; cursor: pointer; }
+  .sheet .card { background: transparent; border: none; padding: 4px 0 0; }
+  .showResult { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+    z-index: 55; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+  .showResult[hidden] { display: none; }
+  @keyframes sheetUp { from { transform: translate(-50%, 28px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 
   .card { background: rgba(10,20,32,0.55); border: 1px solid #1D3450;
     border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
@@ -144,9 +160,8 @@
     .pulse, .halo, .banner { animation: none; }
   }
   @media (max-width: 860px) {
-    .playRow { flex-direction: column; }
-    .pitchCol { flex: 0 0 auto; align-self: stretch; }
-    .side { width: 100%; flex: 1 1 auto; max-height: none; }
+    .topBar .scnTitle { font-size: 24px; }
+    .situationBar { font-size: 14.5px; }
   }
   .errPanel { padding: 20px; margin: 16px; border-radius: 12px; color: #fff; background: #7f1d1d;
     font-family: monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
@@ -517,8 +532,8 @@ function makePitch(you, opts) {
   s.appendChild(pitchStatic());
   const dim = svg("rect", { x: 0, y: 0, width: 100, height: 64, fill: "rgba(8,14,24,0.45)", visibility: "hidden" });
   s.appendChild(dim);
-  const trailsG = svg("g"), overlaysG = svg("g"), actorsG = svg("g");
-  s.appendChild(trailsG); s.appendChild(overlaysG); s.appendChild(actorsG);
+  const trailsG = svg("g"), geomG = svg("g"), actorsG = svg("g"), badgeG = svg("g");
+  s.appendChild(trailsG); s.appendChild(geomG); s.appendChild(actorsG); s.appendChild(badgeG);
   const actors = {};
   const mk = (id, fill, isYou, isGK) => {
     const g = svg("g");
@@ -556,32 +571,38 @@ function makePitch(you, opts) {
     },
     setDim(on) { dim.setAttribute("visibility", on ? "visible" : "hidden"); },
     setBanner(b) { if (!b) { banner.style.display = "none"; return; } banner.textContent = b.text; banner.style.color = b.color; banner.style.display = "flex"; },
-    // overlays: [{choice, zone:[x,y,r] | arrow:[[x,y],[x,y]], n}]; onPick(choice); pickedId dims the others
-    setOverlays(list, onPick, pickedId) {
-      overlaysG.innerHTML = "";
+    // overlays: [{choice, zone:[x,y,r] | arrow:[[x,y],[x,y]]}]; onPick(choice); pickedId dims the others; world = actor positions to avoid
+    setOverlays(list, onPick, pickedId, world) {
+      geomG.innerHTML = ""; badgeG.innerHTML = "";
       if (!list) return;
-      const narrow = isNarrow();
-      const items = list.map((o, r) => {
-        let ax, ay;
-        if (o.arrow) { const [f, t] = o.arrow; const dx = t[0] - f[0], dy = t[1] - f[1], L = Math.hypot(dx, dy) || 1; ax = f[0] + dx * 0.68 + (-dy / L) * 4.2; ay = f[1] + dy * 0.68 + (dx / L) * 4.2; }
-        else { ax = o.zone[0]; ay = o.zone[1] - o.zone[2] - 3.2; }
-        const w = narrow ? 6.4 : Math.max(10, o.choice.label.length * 1.55 + 3), h = narrow ? 6.4 : 4.6;
-        return { o, n: r + 1, ax, ay, w, h };
+      const obstacles = [];
+      Object.keys(world || {}).forEach((id) => { const p = world[id]; if (!p) return; obstacles.push({ p, r: id === "B" ? 2.2 : (id === you ? 6.2 : 3.6) }); });
+      const items = list.map((o, i) => {
+        let ax, ay, anchor;
+        if (o.arrow) { const [f, t] = o.arrow; const dx = t[0] - f[0], dy = t[1] - f[1], L = Math.hypot(dx, dy) || 1; anchor = [f[0] + dx * 0.62, f[1] + dy * 0.62]; ax = anchor[0] + (-dy / L) * 4.6; ay = anchor[1] + (dx / L) * 4.6; }
+        else { anchor = [o.zone[0], o.zone[1]]; ax = o.zone[0]; ay = o.zone[1] - o.zone[2] - 3.4; }
+        return { o, n: i + 1, ax, ay, anchor };
       });
-      for (let it = 0; it < 14; it++) {
+      const R = 3.1;
+      for (let it = 0; it < 24; it++) {
         let moved = false;
-        for (let a = 0; a < items.length; a++) for (let b = a + 1; b < items.length; b++) {
-          const A = items[a], B = items[b];
-          const ox = Math.min(A.ax + A.w / 2, B.ax + B.w / 2) - Math.max(A.ax - A.w / 2, B.ax - B.w / 2);
-          const oy = Math.min(A.ay + A.h / 2, B.ay + B.h / 2) - Math.max(A.ay - A.h / 2, B.ay - B.h / 2);
-          if (ox > 0 && oy > 0) { const sh = oy / 2 + 0.6; if (A.ay <= B.ay) { A.ay -= sh; B.ay += sh; } else { A.ay += sh; B.ay -= sh; } moved = true; }
+        items.forEach((b) => {
+          obstacles.forEach((ob) => {
+            const dx = b.ax - ob.p[0], dy = b.ay - ob.p[1], d = Math.hypot(dx, dy), min = ob.r + R;
+            if (d < min) { const push = min - d + 0.2; const ux = d < 0.01 ? 0 : dx / d, uy = d < 0.01 ? -1 : dy / d; b.ax += ux * push; b.ay += uy * push; moved = true; }
+          });
+        });
+        for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+          const A = items[i], B = items[j], dx = B.ax - A.ax, dy = B.ay - A.ay, d = Math.hypot(dx, dy), min = R * 2 + 1.2;
+          if (d < min) { const push = (min - d) / 2 + 0.1, ux = d < 0.01 ? 0 : dx / d, uy = d < 0.01 ? 1 : dy / d; A.ax -= ux * push; A.ay -= uy * push; B.ax += ux * push; B.ay += uy * push; moved = true; }
         }
+        items.forEach((b) => { b.ax = Math.min(96, Math.max(4, b.ax)); b.ay = Math.min(60, Math.max(4, b.ay)); });
         if (!moved) break;
       }
-      items.forEach((it) => { it.ax = Math.min(97 - it.w / 2, Math.max(3 + it.w / 2, it.ax)); it.ay = Math.min(57, Math.max(6.5, it.ay)); });
-      items.forEach(({ o, n, ax, ay, w }) => {
+      items.forEach(({ o, n, ax, ay, anchor }) => {
         const dimmed = pickedId && pickedId !== o.choice.id;
-        const g = svg("g", { class: pickedId ? "" : "pulse", opacity: dimmed ? 0.18 : 1, style: "cursor:" + (onPick ? "pointer" : "default") });
+        const cls = pickedId ? "" : "pulse", op = dimmed ? 0.18 : 1, cur = "cursor:" + (onPick ? "pointer" : "default");
+        const g = svg("g", { class: cls, opacity: op, style: cur });
         if (onPick) g.addEventListener("click", () => onPick(o.choice));
         if (o.arrow) {
           const [f, t] = o.arrow;
@@ -589,16 +610,20 @@ function makePitch(you, opts) {
           g.appendChild(svg("line", { x1: f[0], y1: f[1], x2: t[0], y2: t[1], stroke: T.tele, "stroke-width": 0.9, "stroke-dasharray": "2.6 1.6", "stroke-linecap": "round", "marker-end": "url(#arrowTip)" }));
         } else {
           g.appendChild(svg("circle", { cx: o.zone[0], cy: o.zone[1], r: o.zone[2] + 4, fill: "transparent" }));
-          g.appendChild(svg("circle", { cx: o.zone[0], cy: o.zone[1], r: o.zone[2], fill: "rgba(242,249,79,0.12)", stroke: T.tele, "stroke-width": 0.7, "stroke-dasharray": "2.2 1.6" }));
+          g.appendChild(svg("circle", { cx: o.zone[0], cy: o.zone[1], r: o.zone[2], fill: "rgba(242,249,79,0.14)", stroke: T.tele, "stroke-width": 0.7, "stroke-dasharray": "2.2 1.6" }));
         }
-        if (narrow) {
-          g.appendChild(svg("circle", { cx: ax, cy: ay, r: 3, fill: "rgba(10,20,32,0.92)", stroke: T.tele, "stroke-width": 0.45 }));
-          g.appendChild(svg("text", { x: ax, y: ay + 1.15, "text-anchor": "middle", "font-size": 3.4, "font-weight": 800, fill: T.tele, style: "font-family:'Nunito',sans-serif" }, String(n)));
-        } else {
-          g.appendChild(svg("rect", { x: ax - w / 2, y: ay - 2.3, width: w, height: 4.6, rx: 2.3, fill: "rgba(10,20,32,0.88)", stroke: T.tele, "stroke-width": 0.25 }));
-          g.appendChild(svg("text", { x: ax, y: ay + 0.95, "text-anchor": "middle", "font-size": 2.7, "font-weight": 700, fill: T.tele, style: "font-family:'Nunito',sans-serif" }, o.choice.label));
+        geomG.appendChild(g);
+        const bg = svg("g", { class: cls, opacity: op, style: cur });
+        if (onPick) bg.addEventListener("click", () => onPick(o.choice));
+        const far = Math.hypot(ax - anchor[0], ay - anchor[1]);
+        if (far > (o.arrow ? 6.5 : (o.zone[2] + 4.2))) {
+          const ux = (anchor[0] - ax) / far, uy = (anchor[1] - ay) / far;
+          const endD = o.arrow ? 0.8 : o.zone[2];
+          bg.appendChild(svg("line", { x1: ax + ux * R, y1: ay + uy * R, x2: anchor[0] - ux * endD, y2: anchor[1] - uy * endD, stroke: T.tele, "stroke-width": 0.35, opacity: 0.75 }));
         }
-        overlaysG.appendChild(g);
+        bg.appendChild(svg("circle", { cx: ax, cy: ay, r: R, fill: "rgba(10,20,32,0.94)", stroke: T.tele, "stroke-width": 0.5 }));
+        bg.appendChild(svg("text", { x: ax, y: ay + 1.2, "text-anchor": "middle", "font-size": 3.5, "font-weight": 800, fill: T.tele, style: "font-family:'Nunito',sans-serif" }, String(n)));
+        badgeG.appendChild(bg);
       });
     },
   };
@@ -737,7 +762,7 @@ const App = {
     const inst = list[idx], play = this.content.plays[inst.playId], isLast = idx === list.length - 1;
     const isDefense = !OFFENSIVE[inst.phase];
     const freezeWorld = worldAt(play, inst.freezeAtMs);
-    const introFrom = inst.introFromMs || 0, introDur = Math.max(300, (inst.freezeAtMs - introFrom) / (inst.speed || 1));
+    const introFrom = inst.introFromMs || 0, introDur = Math.max(300, inst.freezeAtMs - introFrom);
     const geom = inst.choices.map((c) => {
       if (c.arrow) return { choice: c, arrow: [resolveRef(c.arrow.from, freezeWorld, inst.you), resolveRef(c.arrow.to, freezeWorld, inst.you)] };
       const at = resolveRef(c.zone.at, freezeWorld, inst.you); return { choice: c, zone: [at[0], at[1], c.zone.r || 5] };
@@ -750,46 +775,65 @@ const App = {
       trails.push({ pts, color: id === "B" ? "#FFFFFF" : (id[0] === "o" ? T.opp : (id === inst.you ? T.you : T.mate)) });
     });
 
-    const pitch = makePitch(inst.you);
-    const side = el("div", { class: "side" });
-    const row = el("div", { class: "playRow" }, el("div", { class: "pitchCol" }, pitch.root), side);
-    let cancel = null, phase = "intro", picked = null, alt = null, timerRaf = null;
     const self = this;
-    this._cleanup = () => { if (cancel) cancel(); if (timerRaf) cancelAnimationFrame(timerRaf); };
+    const pitch = makePitch(inst.you);
+    const col = el("div", { class: "playCol" });
+    const top = el("div", { class: "topBar" },
+      el("button", { class: "btn tiny ghost", onClick: () => self.go({ screen: "home", position }) }, "‹ Levels"),
+      el("span", { class: "crumbTag" }, lvl.tag),
+      el("span", { class: "scnTitle" }, inst.title),
+      el("span", { class: "meta" }, lvl.name + " · " + (idx + 1) + " of " + list.length + " · you are " + inst.you));
+    const situ = el("p", { class: "situationBar" }, inst.situation);
+    const ctrl = el("div", { class: "ctrlRow" });
+    const sheet = el("div", { class: "sheet", hidden: "true" });
+    const showBtn = el("button", { class: "btn primary showResult", hidden: "true" }, "▲ Show result");
+    col.appendChild(top); col.appendChild(situ); col.appendChild(pitch.root); col.appendChild(ctrl); col.appendChild(sheet); col.appendChild(showBtn);
 
-    const legendBox = el("div", { class: "legend" });
-    row.querySelector(".pitchCol").appendChild(legendBox);
-    const labelsChip = el("button", { class: "btn tiny ghost", onClick: () => { labelsOn = !labelsOn; pitch.setLabels(labelsOn); labelsChip.textContent = labelsOn ? "Hide names" : "Show names"; } }, "Hide names");
-    let labelsOn = true;
-    const renderLegend = (choices, onPick, pickedId) => {
-      legendBox.innerHTML = "";
-      if (choices && isNarrow()) choices.forEach((c, i) => legendBox.appendChild(el("button", { class: "legendChip", style: { opacity: pickedId && pickedId !== c.id ? 0.4 : 1 }, onClick: () => onPick && onPick(c) }, el("span", { class: "legendNum" }, String(i + 1)), c.label)));
-      legendBox.appendChild(labelsChip);
-    };
-
+    let cancel = null, phase = "intro", picked = null, timerRaf = null, labelsOn = true, sheetNode = null;
+    const onKey = (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); };
+    document.addEventListener("keydown", onKey);
+    this._cleanup = () => { if (cancel) cancel(); if (timerRaf) cancelAnimationFrame(timerRaf); document.removeEventListener("keydown", onKey); };
     const firstRec = self.progress.results[inst.id] && self.progress.results[inst.id].first;
 
-    function sideCommon() {
-      side.innerHTML = "";
-      side.appendChild(el("div", { class: "crumb" }, el("button", { class: "btn tiny ghost", onClick: () => self.go({ screen: "home", position }) }, "‹ Levels"), el("span", { class: "crumbTag" }, lvl.tag)));
-      side.appendChild(el("div", { class: "scnTitle" }, inst.title));
-      side.appendChild(el("div", { class: "scnCount" }, lvl.name + " · " + (idx + 1) + " of " + list.length + " · you are " + inst.you));
-      if (phase === "intro" || phase === "decide" || phase === "outcome" || phase === "alt") side.appendChild(el("p", { class: "situation" }, inst.situation));
+    const labelsChip = el("button", { class: "btn tiny ghost", onClick: () => { labelsOn = !labelsOn; pitch.setLabels(labelsOn); labelsChip.textContent = labelsOn ? "Hide names" : "Show names"; } }, "Hide names");
+    const chips = (onPick, pickedId) => inst.choices.map((c, i) => el("button", {
+      class: "legendChip" + (pickedId ? (pickedId === c.id ? " picked" : " dimmed") : ""),
+      onClick: () => onPick && onPick(c) }, el("span", { class: "legendNum" }, String(i + 1)), c.label));
+    function renderCtrl(kind, extra) {
+      ctrl.innerHTML = "";
+      if (kind === "intro") ctrl.appendChild(el("div", { class: "hint" }, "Watch the play…"));
+      if (kind === "decide") {
+        ctrl.appendChild(extra.timer.root);
+        ctrl.appendChild(el("div", { class: "hint bright" }, isDefense ? "Tap where you go, or the space you step into" : "Tap a glowing option on the pitch"));
+        chips(onPick, null).forEach((c) => ctrl.appendChild(c));
+        ctrl.appendChild(el("button", { class: "btn tiny ghost", onClick: () => { stopTimer(); runIntro(); } }, "↺ Watch again"));
+      }
+      if (kind === "outcome") { ctrl.appendChild(el("div", { class: "hint" }, "Watching: " + extra.label)); chips(null, extra.id).forEach((c) => ctrl.appendChild(c)); }
+      if (kind === "result") { chips(null, extra.id).forEach((c) => ctrl.appendChild(c)); }
+      if (kind === "timeout") { ctrl.appendChild(el("div", { class: "hint" }, "Too slow: the moment passed")); }
+      ctrl.appendChild(labelsChip);
     }
+    function openSheet(node) {
+      sheetNode = node; sheet.innerHTML = "";
+      sheet.appendChild(el("div", { class: "sheetHandle" }));
+      sheet.appendChild(el("button", { class: "sheetClose", "aria-label": "Hide", title: "Hide and look at the pitch", onClick: closeSheet }, "×"));
+      sheet.appendChild(node); sheet.hidden = false; showBtn.hidden = true; pitch.setDim(true);
+    }
+    function closeSheet() { sheet.hidden = true; if (sheetNode) showBtn.hidden = false; pitch.setDim(false); }
+    showBtn.addEventListener("click", () => { if (sheetNode) { sheet.hidden = false; showBtn.hidden = true; pitch.setDim(true); } });
+    function hideSheetForGood() { sheetNode = null; sheet.hidden = true; showBtn.hidden = true; pitch.setDim(false); }
+
     function runIntro() {
-      phase = "intro"; picked = null; alt = null; pitch.setBanner(null); pitch.setDim(false); pitch.setTrails(null); pitch.setOverlays(null); renderLegend(null);
-      sideCommon(); side.appendChild(el("div", { class: "hint" }, "Watch the play…"));
+      phase = "intro"; picked = null; hideSheetForGood(); pitch.setBanner(null); pitch.setTrails(null); pitch.setOverlays(null);
+      renderCtrl("intro");
       pitch.update(worldAt(play, introFrom));
       cancel = animate(introDur, (p) => pitch.update(worldAt(play, introFrom + (inst.freezeAtMs - introFrom) * p)), () => { cancel = null; runDecide(); });
     }
     function runDecide() {
       phase = "decide";
       pitch.update(freezeWorld); pitch.setTrails(trails);
-      pitch.setOverlays(geom, onPick, null); renderLegend(inst.choices, onPick, null);
-      sideCommon();
-      const tr = timerRing(); side.appendChild(tr.root);
-      side.appendChild(el("div", { class: "hint bright" }, isDefense ? "Tap where you go, or the space you step into" : "Tap a glowing option on the pitch"));
-      side.appendChild(el("button", { class: "btn tiny ghost", onClick: () => { stopTimer(); runIntro(); } }, "↺ Watch again"));
+      pitch.setOverlays(geom, onPick, null, freezeWorld);
+      const tr = timerRing(); renderCtrl("decide", { timer: tr });
       let t0 = null;
       const tick = (now) => { if (t0 === null) t0 = now; const rem = DECIDE_MS - (now - t0); tr.set(Math.max(0, rem)); if (rem > 0) timerRaf = requestAnimationFrame(tick); else { timerRaf = null; self.record(inst.id, "slow"); runTimeout(); } };
       timerRaf = requestAnimationFrame(tick);
@@ -801,45 +845,44 @@ const App = {
       runOutcome(choice, "outcome");
     }
     function runOutcome(choice, mode) {
-      phase = mode; pitch.setBanner(null); pitch.setTrails(null);
-      pitch.setOverlays(geom, null, choice.id); renderLegend(inst.choices, null, choice.id);
-      sideCommon(); side.appendChild(el("div", { class: "hint" }, "Watching: " + choice.label));
+      phase = mode; hideSheetForGood(); pitch.setBanner(null); pitch.setTrails(null);
+      pitch.setOverlays(geom, null, choice.id, freezeWorld); renderCtrl("outcome", { label: choice.label, id: choice.id });
       const dur = outcomeDur(play, inst, choice);
       cancel = animate(dur, (p) => pitch.update(outcomeWorld(play, inst, choice, freezeWorld, p)), () => {
         cancel = null;
         const tone = choice.outcome.tone, color = tone === "good" ? T.great : tone === "bad" ? T.opp : T.good;
         pitch.setBanner({ text: choice.outcome.result, color });
-        setTimeout(() => { pitch.setBanner(null); pitch.setOverlays(null); renderLegend(null); pitch.setDim(true); if (mode === "alt") showAltCard(choice); else showFeedback(); }, 950);
+        setTimeout(() => { pitch.setBanner(null); if (mode === "alt") showAltCard(choice); else showFeedback(); }, 950);
       });
     }
     function showFeedback() {
-      phase = "feedback"; sideCommon();
-      const c = picked, isFirstTry = firstRec === undefined || firstRec === c.grade;
+      phase = "feedback"; const c = picked, isFirstTry = firstRec === undefined || firstRec === c.grade;
       const others = inst.choices.filter((x) => x.id !== c.id);
-      side.appendChild(el("div", { class: "card" },
+      pitch.setOverlays(geom, null, c.id, freezeWorld); renderCtrl("result", { id: c.id });
+      openSheet(el("div", { class: "card" },
         ratingChip(c.grade), el("div", { class: "eyebrow" }, c.principle || inst.principle), el("p", { class: "why" }, c.why),
         el("div", { class: "prow good" }, "✓ " + c.pro), el("div", { class: "prow warn" }, "! " + c.con),
         el("div", { class: "kidLine" }, "“" + inst.kidLine + "”"),
         (!isFirstTry && firstRec) ? el("div", { class: "firstNote" }, "First answer counted for stars: " + RATINGS[firstRec].label.toLowerCase()) : null,
         el("div", { class: "divider" }), el("div", { class: "miniHead" }, "Watch the other options"),
-        el("div", { class: "altRow" }, others.map((o) => el("button", { class: "btn ghost", onClick: () => { alt = o; pitch.setDim(false); runOutcome(o, "alt"); } }, "▶ " + o.label))),
+        el("div", { class: "altRow" }, others.map((o) => el("button", { class: "btn ghost", onClick: () => runOutcome(o, "alt") }, "▶ " + o.label))),
         el("div", { class: "btnRow" }, el("button", { class: "btn ghost", onClick: runIntro }, "Try this one again"),
           el("button", { class: "btn primary", onClick: () => self.go(isLast ? { screen: "summary", position, levelId } : { screen: "play", position, levelId, idx: idx + 1 }) }, isLast ? "Finish level" : "Next scenario →"))));
     }
     function showAltCard(choice) {
-      phase = "altCard"; sideCommon();
-      side.appendChild(el("div", { class: "card" }, ratingChip(choice.grade), el("div", { class: "eyebrow" }, choice.principle || inst.principle), el("p", { class: "why" }, choice.why),
+      phase = "altCard"; renderCtrl("result", { id: choice.id });
+      openSheet(el("div", { class: "card" }, ratingChip(choice.grade), el("div", { class: "eyebrow" }, choice.principle || inst.principle), el("p", { class: "why" }, choice.why),
         el("div", { class: "prow good" }, "✓ " + choice.pro), el("div", { class: "prow warn" }, "! " + choice.con),
         el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: () => { pitch.update(outcomeWorld(play, inst, picked, freezeWorld, 1)); showFeedback(); } }, "Back to results"))));
     }
     function runTimeout() {
-      phase = "timeout"; pitch.setOverlays(null); renderLegend(null); pitch.setDim(true); sideCommon();
-      side.appendChild(el("div", { class: "card" }, ratingChip("slow"), el("div", { class: "eyebrow" }, "No decision is a decision"),
+      phase = "timeout"; pitch.setOverlays(null); renderCtrl("timeout");
+      openSheet(el("div", { class: "card" }, ratingChip("slow"), el("div", { class: "eyebrow" }, "No decision is a decision"),
         el("p", { class: "why" }, isDefense ? "While you waited, the pass was played and the picture changed. Defenders decide early: a so-so step made fast beats a perfect one made late." : "By the time you decided, the ball had arrived and the defender was on you. Scan while the ball is travelling so the choice is ready before it gets to you."),
         el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: runIntro }, "Try again"))));
     }
     runIntro();
-    return row;
+    return col;
   },
 };
 
