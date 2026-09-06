@@ -59,7 +59,7 @@
   .pickPitch > svg { width: 100%; height: 100%; display: block; }
   .pickBtn { cursor: pointer; }
   .pickBtn circle.dot { transition: r .12s ease; }
-  .pickBtn:hover circle.dot { r: 4.2; }
+  .pickBtn:hover circle.dot { r: 3.4; }
   .pickNote { color: #9FB2C8; font-size: 13.5px; line-height: 1.5; text-align: center; margin: 14px auto 0; max-width: 560px; }
   .pickList { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
   .pickCard { background: #101F33; border: 1px solid #1D3450; border-radius: 14px; padding: 12px 14px; color: #EAF2FA;
@@ -537,17 +537,17 @@ function makePitch(you, opts) {
   const actors = {};
   const mk = (id, fill, isYou, isGK) => {
     const g = svg("g");
-    if (isYou) g.appendChild(svg("circle", { class: "halo", r: 4.2, fill: "none", stroke: T.you, "stroke-width": 0.55 }));
-    g.appendChild(svg("circle", { class: "dot", r: 2.5, fill: fill, stroke: isGK ? T.gkRing : (isYou ? "#FFFFFF" : "rgba(255,255,255,0.75)"), "stroke-width": isGK ? 0.7 : 0.5 }));
-    if (isYou) g.appendChild(svg("text", { y: -5.4, "text-anchor": "middle", "font-size": 3.1, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.55, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, "YOU"));
-    else if (OUR_IDS.indexOf(id) >= 0 && id !== "GK") g.appendChild(svg("text", { class: "roleLbl", y: 5.6, "text-anchor": "middle", "font-size": 2.3, "font-weight": 800, fill: "#EAF2FA", stroke: T.ink, "stroke-width": 0.45, opacity: 0.9, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.2" }, id));
+    if (isYou) g.appendChild(svg("circle", { class: "halo", r: 3.0, fill: "none", stroke: T.you, "stroke-width": 0.45 }));
+    g.appendChild(svg("circle", { class: "dot", r: 1.7, fill: fill, stroke: isGK ? T.gkRing : (isYou ? "#FFFFFF" : "rgba(255,255,255,0.75)"), "stroke-width": isGK ? 0.55 : 0.4 }));
+    if (isYou) g.appendChild(svg("text", { y: -4.1, "text-anchor": "middle", "font-size": 2.6, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.55, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, "YOU"));
+    else if (OUR_IDS.indexOf(id) >= 0 && id !== "GK") g.appendChild(svg("text", { class: "roleLbl", y: 4.5, "text-anchor": "middle", "font-size": 1.9, "font-weight": 800, fill: "#EAF2FA", stroke: T.ink, "stroke-width": 0.45, opacity: 0.9, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.2" }, id));
     actorsG.appendChild(g);
     actors[id] = g;
   };
   THEIR_IDS.forEach((id) => mk(id, T.opp, false, id === "oGK"));
   OUR_IDS.forEach((id) => { if (id !== you) mk(id, T.mate, false, id === "GK"); });
   mk(you, T.you, true, false);
-  const ball = svg("circle", { r: 1.2, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.35 });
+  const ball = svg("circle", { r: 0.95, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.3 });
   actorsG.appendChild(ball);
   const banner = el("div", { class: "banner", style: { display: "none" } });
   wrap.appendChild(s); wrap.appendChild(banner);
@@ -576,14 +576,14 @@ function makePitch(you, opts) {
       geomG.innerHTML = ""; badgeG.innerHTML = "";
       if (!list) return;
       const obstacles = [];
-      Object.keys(world || {}).forEach((id) => { const p = world[id]; if (!p) return; obstacles.push({ p, r: id === "B" ? 2.2 : (id === you ? 6.2 : 3.6) }); });
+      Object.keys(world || {}).forEach((id) => { const p = world[id]; if (!p) return; obstacles.push({ p, r: id === "B" ? 1.8 : (id === you ? 5.0 : 2.8) }); });
       const items = list.map((o, i) => {
         let ax, ay, anchor;
         if (o.arrow) { const [f, t] = o.arrow; const dx = t[0] - f[0], dy = t[1] - f[1], L = Math.hypot(dx, dy) || 1; anchor = [f[0] + dx * 0.62, f[1] + dy * 0.62]; ax = anchor[0] + (-dy / L) * 4.6; ay = anchor[1] + (dx / L) * 4.6; }
         else { anchor = [o.zone[0], o.zone[1]]; ax = o.zone[0]; ay = o.zone[1] - o.zone[2] - 3.4; }
         return { o, n: i + 1, ax, ay, anchor };
       });
-      const R = 3.1;
+      const R = 2.7;
       for (let it = 0; it < 24; it++) {
         let moved = false;
         items.forEach((b) => {
@@ -622,7 +622,7 @@ function makePitch(you, opts) {
           bg.appendChild(svg("line", { x1: ax + ux * R, y1: ay + uy * R, x2: anchor[0] - ux * endD, y2: anchor[1] - uy * endD, stroke: T.tele, "stroke-width": 0.35, opacity: 0.75 }));
         }
         bg.appendChild(svg("circle", { cx: ax, cy: ay, r: R, fill: "rgba(10,20,32,0.94)", stroke: T.tele, "stroke-width": 0.5 }));
-        bg.appendChild(svg("text", { x: ax, y: ay + 1.2, "text-anchor": "middle", "font-size": 3.5, "font-weight": 800, fill: T.tele, style: "font-family:'Nunito',sans-serif" }, String(n)));
+        bg.appendChild(svg("text", { x: ax, y: ay + 1.05, "text-anchor": "middle", "font-size": 3.1, "font-weight": 800, fill: T.tele, style: "font-family:'Nunito',sans-serif" }, String(n)));
         badgeG.appendChild(bg);
       });
     },
@@ -691,14 +691,14 @@ const App = {
     s.appendChild(pitchDefs()); s.appendChild(pitchStatic());
     const spots = PRESETS.us["home"];
     const roleName = { RB: "Right back", LB: "Left back", RCB: "Right centre back", LCB: "Left centre back", RCM: "Right mid (an 8)", CM: "Centre mid (the 6)", LCM: "Left mid (an 8)" };
-    ["GK", "ST"].forEach((id) => { const p = spots[id]; s.appendChild(svg("g", { transform: "translate(" + p[0] + " " + p[1] + ")", opacity: 0.55 }, svg("circle", { r: 2.5, fill: T.mate, stroke: "rgba(255,255,255,0.75)", "stroke-width": 0.5 }), svg("text", { y: 5.6, "text-anchor": "middle", "font-size": 2.3, "font-weight": 800, fill: "#EAF2FA", style: "font-family:'Barlow Condensed',sans-serif" }, id))); });
+    ["GK", "ST"].forEach((id) => { const p = spots[id]; s.appendChild(svg("g", { transform: "translate(" + p[0] + " " + p[1] + ")", opacity: 0.55 }, svg("circle", { r: 2.0, fill: T.mate, stroke: "rgba(255,255,255,0.75)", "stroke-width": 0.4 }), svg("text", { y: 4.6, "text-anchor": "middle", "font-size": 1.9, "font-weight": 800, fill: "#EAF2FA", style: "font-family:'Barlow Condensed',sans-serif" }, id))); });
     PLAYABLE.forEach((id) => {
       const p = spots[id];
       const g = svg("g", { class: "pickBtn", transform: "translate(" + p[0] + " " + p[1] + ")", onClick: () => this.setPosition(id) },
         svg("circle", { r: 6, fill: "transparent" }),
-        svg("circle", { r: 4.8, fill: "none", stroke: T.tele, "stroke-width": 0.5, "stroke-dasharray": "2 1.4", class: "pulse" }),
-        svg("circle", { class: "dot", r: 3.2, fill: T.you, stroke: "#FFFFFF", "stroke-width": 0.5 }),
-        svg("text", { y: 7.8, "text-anchor": "middle", "font-size": 3, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.5, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, id));
+        svg("circle", { r: 4.2, fill: "none", stroke: T.tele, "stroke-width": 0.5, "stroke-dasharray": "2 1.4", class: "pulse" }),
+        svg("circle", { class: "dot", r: 2.7, fill: T.you, stroke: "#FFFFFF", "stroke-width": 0.45 }),
+        svg("text", { y: 7.0, "text-anchor": "middle", "font-size": 2.7, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.5, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, id));
       s.appendChild(g);
     });
     wrap.appendChild(el("div", { class: "pickPitch" }, s));
