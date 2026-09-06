@@ -185,7 +185,7 @@ const T = { night:"#0B1524", panel:"#101F33", panelEdge:"#1D3450", turfA:"#1F6B4
   slow:"#9AA7B8", ink:"#0A1420", text:"#EAF2FA", dim:"#9FB2C8", gkRing:"#FFD166" };
 const RATINGS = { great:{label:"GREAT CHOICE", color:T.great, stars:true}, good:{label:"GOOD CHOICE", color:T.good},
   risky:{label:"RISKY CHOICE", color:T.risky}, slow:{label:"TOO SLOW", color:T.slow} };
-const DECIDE_MS = 8000;
+const DECIDE_MS = 10000;
 const STORAGE_KEY = "sf9v9-progress";
 const OUR_IDS = ["GK","RB","RCB","LCB","LB","RCM","CM","LCM","ST"];
 const THEIR_IDS = ["oGK","oR","oC","oL","oRM","oCM","oLM","oRF","oCF","oLF"];
@@ -632,7 +632,7 @@ function makePitch(you, opts) {
 function timerRing() {
   const r = 24, circ = 2 * Math.PI * r;
   const fg = svg("circle", { cx: 32, cy: 32, r, fill: "none", stroke: T.tele, "stroke-width": 6, "stroke-linecap": "round", "stroke-dasharray": circ, "stroke-dashoffset": 0, transform: "rotate(-90 32 32)" });
-  const txt = svg("text", { x: 32, y: 38, "text-anchor": "middle", "font-size": 19, "font-weight": 800, fill: T.text, style: "font-family:'Barlow Condensed',sans-serif" }, "8");
+  const txt = svg("text", { x: 32, y: 38, "text-anchor": "middle", "font-size": 19, "font-weight": 800, fill: T.text, style: "font-family:'Barlow Condensed',sans-serif" }, "10");
   const s = svg("svg", { width: 64, height: 64, viewBox: "0 0 64 64" }, svg("circle", { cx: 32, cy: 32, r, fill: "none", stroke: "rgba(255,255,255,0.12)", "stroke-width": 6 }), fg, txt);
   const box = el("div", { class: "timerBox" }, s, el("div", { class: "timerLabel" }, "DECIDE"));
   return { root: box, set(remainingMs) {
