@@ -116,6 +116,14 @@
   .showResult { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
     z-index: 55; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
   .showResult[hidden] { display: none; }
+  .modalBack { position: fixed; inset: 0; z-index: 70; background: rgba(5,10,18,0.62); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modalBack[hidden] { display: none; }
+  .modal { width: min(560px, 100%); background: #101F33; border: 1px solid #1D3450; border-radius: 18px; padding: 18px 20px 16px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 10px; animation: pop .22s ease-out; }
+  .modalTitle { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; line-height: 1.05; }
+  .modalText { font-size: 17px; line-height: 1.6; color: #EAF2FA; margin: 0; }
+  .modalNote { font-size: 12.5px; color: #9FB2C8; }
+  @media (prefers-reduced-motion: reduce) { .modal { animation: none; } }
   @keyframes sheetUp { from { transform: translate(-50%, 28px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 
@@ -194,6 +202,17 @@ const OFFENSIVE = { "build-attack":1, "transition-to-attack":1, "patterns":1 };
 const ROLE_MIRROR = { RB:"LB", LB:"RB", RCB:"LCB", LCB:"RCB", RCM:"LCM", LCM:"RCM", CM:"CM", GK:"GK", ST:"ST",
   oGK:"oGK", oR:"oL", oL:"oR", oC:"oC", oRM:"oLM", oLM:"oRM", oCM:"oCM", oRF:"oLF", oLF:"oRF", oCF:"oCF", B:"B" };
 const PH = 64;   // pitch height in units (for mirroring: y -> PH - y)
+// Shirt numbers (evens on our right, odds on our left) and role names used in kid-facing text.
+const NUM = { GK: "1", RB: "2", LB: "3", RCB: "4", LCB: "5", CM: "6", LCM: "7", RCM: "8", ST: "9" };
+const ROLE_NAME = { GK: "keeper", RB: "right back", LB: "left back", RCB: "right centre back", LCB: "left centre back", CM: "centre mid", LCM: "left mid", RCM: "right mid", ST: "striker" };
+const ID_NUM_RE = /\b(GK|RB|LB|RCB|LCB|CM|LCM|RCM|ST)\b/g;
+const numberize = (s) => typeof s === "string" ? s.replace(ID_NUM_RE, (m) => NUM[m]) : s;
+function numberizeInst(inst) {
+  const o = Object.assign({}, inst, { title: numberize(inst.title), situation: numberize(inst.situation), kidLine: numberize(inst.kidLine), principle: numberize(inst.principle),
+    choices: inst.choices.map((c) => Object.assign({}, c, { label: numberize(c.label), why: numberize(c.why), pro: numberize(c.pro), con: numberize(c.con),
+      outcome: c.outcome ? Object.assign({}, c.outcome, { result: numberize(c.outcome.result) }) : c.outcome })) });
+  return o;
+}
 
 const smoothstep = (t) => t * t * (3 - 2 * t);
 // Piecewise keyframe interpolation with smoothstep between neighbours. Works for ms keys or normalized keys.
@@ -351,10 +370,10 @@ function buildContent() {
   const instances = [];
   SCENARIOS.forEach((s) => {
     const base = unmirrorScenario(s);
-    instances.push(base);
+    instances.push(numberizeInst(base));
     if (s.mirror) {
       const pm = plays[s.playId + ".m"] || (plays[s.playId] ? (plays[s.playId + ".m"] = mirrorPlay(plays[s.playId])) : null);
-      if (pm) instances.push(mirrorScenario(s));
+      if (pm) instances.push(numberizeInst(mirrorScenario(s)));
     }
   });
   const levelOrder = {}; LEVELS.forEach((l, i) => { levelOrder[l.id] = i; });
@@ -540,7 +559,7 @@ function makePitch(you, opts) {
     if (isYou) g.appendChild(svg("circle", { class: "halo", r: 3.0, fill: "none", stroke: T.you, "stroke-width": 0.45 }));
     g.appendChild(svg("circle", { class: "dot", r: 1.7, fill: fill, stroke: isGK ? T.gkRing : (isYou ? "#FFFFFF" : "rgba(255,255,255,0.75)"), "stroke-width": isGK ? 0.55 : 0.4 }));
     if (isYou) g.appendChild(svg("text", { y: -4.1, "text-anchor": "middle", "font-size": 2.6, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.55, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, "YOU"));
-    else if (OUR_IDS.indexOf(id) >= 0 && id !== "GK") g.appendChild(svg("text", { class: "roleLbl", y: 4.5, "text-anchor": "middle", "font-size": 1.9, "font-weight": 800, fill: "#EAF2FA", stroke: T.ink, "stroke-width": 0.45, opacity: 0.9, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.2" }, id));
+    if (NUM[id]) g.appendChild(svg("text", { class: "numLbl", y: 0.85, "text-anchor": "middle", "font-size": 2.3, "font-weight": 800, fill: T.ink, style: "font-family:'Barlow Condensed',sans-serif;pointer-events:none" }, NUM[id]));
     actorsG.appendChild(g);
     actors[id] = g;
   };
@@ -564,7 +583,7 @@ function makePitch(you, opts) {
       if (world.B) { ball.setAttribute("cx", world.B[0].toFixed(2)); ball.setAttribute("cy", world.B[1].toFixed(2)); ball.setAttribute("visibility", "visible"); }
       else ball.setAttribute("visibility", "hidden");
     },
-    setLabels(on) { labelsOn = on; s.querySelectorAll(".roleLbl").forEach((t) => t.setAttribute("visibility", on ? "visible" : "hidden")); },
+    setLabels(on) { labelsOn = on; s.querySelectorAll(".numLbl").forEach((t) => t.setAttribute("visibility", on ? "visible" : "hidden")); },
     setTrails(list) {
       trailsG.innerHTML = "";
       (list || []).forEach((tr) => trailsG.appendChild(svg("polyline", { points: tr.pts.map((p) => p.join(",")).join(" "), fill: "none", stroke: tr.color, "stroke-width": 0.7, "stroke-dasharray": "1.6 1.6", "stroke-linecap": "round", opacity: 0.4 })));
@@ -690,21 +709,22 @@ const App = {
     const s = svg("svg", { viewBox: "0 0 100 64" });
     s.appendChild(pitchDefs()); s.appendChild(pitchStatic());
     const spots = PRESETS.us["home"];
-    const roleName = { RB: "Right back", LB: "Left back", RCB: "Right centre back", LCB: "Left centre back", RCM: "Right mid (an 8)", CM: "Centre mid (the 6)", LCM: "Left mid (an 8)" };
-    ["GK", "ST"].forEach((id) => { const p = spots[id]; s.appendChild(svg("g", { transform: "translate(" + p[0] + " " + p[1] + ")", opacity: 0.55 }, svg("circle", { r: 2.0, fill: T.mate, stroke: "rgba(255,255,255,0.75)", "stroke-width": 0.4 }), svg("text", { y: 4.6, "text-anchor": "middle", "font-size": 1.9, "font-weight": 800, fill: "#EAF2FA", style: "font-family:'Barlow Condensed',sans-serif" }, id))); });
+    const roleName = { RB: "Right back", LB: "Left back", RCB: "Right centre back", LCB: "Left centre back", RCM: "Right mid", CM: "Centre mid", LCM: "Left mid" };
+    ["GK", "ST"].forEach((id) => { const p = spots[id]; s.appendChild(svg("g", { transform: "translate(" + p[0] + " " + p[1] + ")", opacity: 0.55 }, svg("circle", { r: 2.0, fill: T.mate, stroke: "rgba(255,255,255,0.75)", "stroke-width": 0.4 }), svg("text", { y: 0.8, "text-anchor": "middle", "font-size": 2.2, "font-weight": 800, fill: T.ink, style: "font-family:'Barlow Condensed',sans-serif" }, NUM[id]))); });
     PLAYABLE.forEach((id) => {
       const p = spots[id];
       const g = svg("g", { class: "pickBtn", transform: "translate(" + p[0] + " " + p[1] + ")", onClick: () => this.setPosition(id) },
         svg("circle", { r: 6, fill: "transparent" }),
         svg("circle", { r: 4.2, fill: "none", stroke: T.tele, "stroke-width": 0.5, "stroke-dasharray": "2 1.4", class: "pulse" }),
         svg("circle", { class: "dot", r: 2.7, fill: T.you, stroke: "#FFFFFF", "stroke-width": 0.45 }),
-        svg("text", { y: 7.0, "text-anchor": "middle", "font-size": 2.7, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.5, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, id));
+        svg("text", { y: 1.0, "text-anchor": "middle", "font-size": 3.0, "font-weight": 800, fill: T.ink, style: "font-family:'Barlow Condensed',sans-serif;pointer-events:none" }, NUM[id]),
+        svg("text", { y: 7.0, "text-anchor": "middle", "font-size": 2.2, "font-weight": 800, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.5, style: "paint-order:stroke;font-family:'Barlow Condensed',sans-serif;letter-spacing:.2" }, roleName[id]));
       s.appendChild(g);
     });
     wrap.appendChild(el("div", { class: "pickPitch" }, s));
     wrap.appendChild(el("p", { class: "pickNote" }, "Tap your position. We attack to the right. Whatever spot you play today, learn its job like it's your favourite; next week you might play somewhere new."));
     const list = el("div", { class: "pickList" });
-    PLAYABLE.forEach((id) => list.appendChild(el("button", { class: "pickCard", onClick: () => this.setPosition(id) }, el("div", { class: "pk" }, id), el("div", { class: "pd" }, roleName[id]))));
+    PLAYABLE.forEach((id) => list.appendChild(el("button", { class: "pickCard", onClick: () => this.setPosition(id) }, el("div", { class: "pk" }, "#" + NUM[id] + " · " + roleName[id]), el("div", { class: "pd" }, NUM[id] % 2 === 0 ? "Evens play on the right" : "Odds play on the left"))));
     wrap.appendChild(list);
     home.appendChild(wrap);
     if (/[?&]lint=1/.test(location.search)) home.appendChild(this.lintPanel());
@@ -724,7 +744,7 @@ const App = {
       el("p", { class: "sub" }, "Watch the play. When it freezes, tap the smartest space before the whistle. You're the glowing ",
         el("span", { style: { color: T.you, fontWeight: 800 } }, "blue player"), "; teammates are light blue, opponents are ",
         el("span", { style: { color: T.opp, fontWeight: 800 } }, "red"), ". Get a ", el("b", null, "GREAT"), " on your first try to earn the star."),
-      el("div", { class: "posRow" }, el("span", { class: "posBadge" }, "TODAY: " + pos), el("button", { class: "btn tiny ghost", onClick: () => this.go({ screen: "pick" }) }, "Change position"))));
+      el("div", { class: "posRow" }, el("span", { class: "posBadge" }, "TODAY: #" + NUM[pos] + " · " + ROLE_NAME[pos].toUpperCase()), el("button", { class: "btn tiny ghost", onClick: () => this.go({ screen: "pick" }) }, "Change position"))));
     const grid = el("div", { class: "setGrid" });
     LEVELS.forEach((lvl, li) => {
       const list = content.byPosition[pos][lvl.id];
@@ -782,20 +802,21 @@ const App = {
       el("button", { class: "btn tiny ghost", onClick: () => self.go({ screen: "home", position }) }, "‹ Levels"),
       el("span", { class: "crumbTag" }, lvl.tag),
       el("span", { class: "scnTitle" }, inst.title),
-      el("span", { class: "meta" }, lvl.name + " · " + (idx + 1) + " of " + list.length + " · you are " + inst.you));
+      el("span", { class: "meta" }, lvl.name + " · " + (idx + 1) + " of " + list.length + " · you are #" + NUM[inst.you] + ", " + ROLE_NAME[inst.you]));
     const situ = el("p", { class: "situationBar" }, inst.situation);
     const ctrl = el("div", { class: "ctrlRow" });
     const sheet = el("div", { class: "sheet", hidden: "true" });
     const showBtn = el("button", { class: "btn primary showResult", hidden: "true" }, "▲ Show result");
-    col.appendChild(top); col.appendChild(situ); col.appendChild(pitch.root); col.appendChild(ctrl); col.appendChild(sheet); col.appendChild(showBtn);
+    const modalBack = el("div", { class: "modalBack", hidden: "true" });
+    col.appendChild(top); col.appendChild(situ); col.appendChild(pitch.root); col.appendChild(ctrl); col.appendChild(sheet); col.appendChild(showBtn); col.appendChild(modalBack);
 
     let cancel = null, phase = "intro", picked = null, timerRaf = null, labelsOn = true, sheetNode = null;
-    const onKey = (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); };
+    const onKey = (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); if (e.key === "Enter" && !modalBack.hidden) startFromModal(); };
     document.addEventListener("keydown", onKey);
     this._cleanup = () => { if (cancel) cancel(); if (timerRaf) cancelAnimationFrame(timerRaf); document.removeEventListener("keydown", onKey); };
     const firstRec = self.progress.results[inst.id] && self.progress.results[inst.id].first;
 
-    const labelsChip = el("button", { class: "btn tiny ghost", onClick: () => { labelsOn = !labelsOn; pitch.setLabels(labelsOn); labelsChip.textContent = labelsOn ? "Hide names" : "Show names"; } }, "Hide names");
+    const labelsChip = el("button", { class: "btn tiny ghost", onClick: () => { labelsOn = !labelsOn; pitch.setLabels(labelsOn); labelsChip.textContent = labelsOn ? "Hide numbers" : "Show numbers"; } }, "Hide numbers");
     const chips = (onPick, pickedId) => inst.choices.map((c, i) => el("button", {
       class: "legendChip" + (pickedId ? (pickedId === c.id ? " picked" : " dimmed") : ""),
       onClick: () => onPick && onPick(c) }, el("span", { class: "legendNum" }, String(i + 1)), c.label));
@@ -823,6 +844,20 @@ const App = {
     showBtn.addEventListener("click", () => { if (sheetNode) { sheet.hidden = false; showBtn.hidden = true; pitch.setDim(true); } });
     function hideSheetForGood() { sheetNode = null; sheet.hidden = true; showBtn.hidden = true; pitch.setDim(false); }
 
+    function showBrief() {
+      phase = "brief"; picked = null; hideSheetForGood(); pitch.setBanner(null); pitch.setTrails(null); pitch.setOverlays(null);
+      pitch.update(worldAt(play, introFrom)); pitch.setDim(true);
+      ctrl.innerHTML = ""; ctrl.appendChild(el("div", { class: "hint" }, "Read the situation, then watch the play"));
+      modalBack.innerHTML = "";
+      modalBack.appendChild(el("div", { class: "modal" },
+        el("div", { class: "crumbTag" }, lvl.tag + " · YOU ARE #" + NUM[inst.you] + ", " + ROLE_NAME[inst.you].toUpperCase()),
+        el("div", { class: "modalTitle" }, inst.title),
+        el("p", { class: "modalText" }, inst.situation),
+        el("div", { class: "modalNote" }, "The play will run, then freeze. You get " + Math.round(DECIDE_MS / 1000) + " seconds to tap your answer."),
+        el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: startFromModal }, "Got it, show me the play ▶"))));
+      modalBack.hidden = false;
+    }
+    function startFromModal() { modalBack.hidden = true; pitch.setDim(false); runIntro(); }
     function runIntro() {
       phase = "intro"; picked = null; hideSheetForGood(); pitch.setBanner(null); pitch.setTrails(null); pitch.setOverlays(null);
       renderCtrl("intro");
@@ -881,7 +916,7 @@ const App = {
         el("p", { class: "why" }, isDefense ? "While you waited, the pass was played and the picture changed. Defenders decide early: a so-so step made fast beats a perfect one made late." : "By the time you decided, the ball had arrived and the defender was on you. Scan while the ball is travelling so the choice is ready before it gets to you."),
         el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: runIntro }, "Try again"))));
     }
-    runIntro();
+    if (self.devNoRecord) runIntro(); else showBrief();
     return col;
   },
 };
