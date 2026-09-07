@@ -116,6 +116,25 @@
   .showResult { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
     z-index: 55; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
   .showResult[hidden] { display: none; }
+  .stepWrap { display: flex; flex-direction: column; gap: 10px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .stepHead { font-size: 12px; }
+  .stepBody { min-height: 110px; display: flex; flex-direction: column; gap: 10px; }
+  .pageIn { animation: pageIn .18s ease-out; }
+  @keyframes pageIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+  .stepPrinciple { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 800; line-height: 1.1; }
+  .stepText { font-size: 17px; line-height: 1.6; margin: 0; }
+  .prow.big { font-size: 17px; line-height: 1.55; padding: 12px 14px; }
+  .kidLine.big { font-size: 21px; line-height: 1.4; }
+  .swipeHint { color: #9FB2C8; font-size: 12.5px; }
+  .stepNav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .stepMid { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .stepCount { font-size: 11px; color: #9FB2C8; font-weight: 800; letter-spacing: 1px; }
+  .stepDots { display: flex; gap: 6px; }
+  .stepDot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.18); }
+  .stepDot.done { background: rgba(242,249,79,0.45); }
+  .stepDot.on { background: #F2F94F; }
+  .stepNext { flex: 0 0 auto; }
+  @media (prefers-reduced-motion: reduce) { .pageIn { animation: none; } }
   .modalBack { position: fixed; inset: 0; z-index: 70; background: rgba(5,10,18,0.62); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .modalBack[hidden] { display: none; }
   .modal { width: min(560px, 100%); background: #101F33; border: 1px solid #1D3450; border-radius: 18px; padding: 18px 20px 16px;
@@ -663,6 +682,36 @@ function timerRing() {
 }
 const ratingChip = (grade) => el("span", { class: "chip", style: { background: RATINGS[grade].color, color: T.ink } }, RATINGS[grade].label);
 
+// One-idea-per-step walkthrough: pages = [{head, body:[nodes]}]. Swipe, arrow keys, or Back/Next; the last page carries the actions.
+function stepper(pages) {
+  let i = 0;
+  const wrap = el("div", { class: "stepWrap" });
+  const head = el("div", { class: "miniHead stepHead" });
+  const body = el("div", { class: "stepBody" });
+  const dots = el("div", { class: "stepDots" });
+  const prev = el("button", { class: "btn tiny ghost", onClick: () => go(i - 1) }, "‹ Back");
+  const next = el("button", { class: "btn primary stepNext", onClick: () => go(i + 1) }, "Next ›");
+  const count = el("span", { class: "stepCount" });
+  const nav = el("div", { class: "stepNav" }, prev, el("div", { class: "stepMid" }, dots, count), next);
+  function render() {
+    head.textContent = pages[i].head;
+    body.innerHTML = ""; pages[i].body.forEach((n) => { if (n) body.appendChild(n); });
+    body.classList.remove("pageIn"); void body.offsetWidth; body.classList.add("pageIn");
+    dots.innerHTML = ""; pages.forEach((_, k) => dots.appendChild(el("span", { class: "stepDot" + (k === i ? " on" : k < i ? " done" : "") })));
+    count.textContent = (i + 1) + " of " + pages.length;
+    prev.style.visibility = i === 0 ? "hidden" : "visible";
+    next.style.visibility = i === pages.length - 1 ? "hidden" : "visible";
+    wrap.scrollIntoView && i > 0 && wrap.closest(".sheet") && (wrap.closest(".sheet").scrollTop = 0);
+  }
+  function go(k) { i = Math.max(0, Math.min(pages.length - 1, k)); render(); }
+  let x0 = null, y0 = null;
+  wrap.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; });
+  wrap.addEventListener("pointerup", (e) => { if (x0 === null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) go(i + (dx < 0 ? 1 : -1)); });
+  wrap.appendChild(head); wrap.appendChild(body); wrap.appendChild(nav);
+  render();
+  return { root: wrap, go: (k) => go(k), step: () => i, next: () => go(i + 1), back: () => go(i - 1) };
+}
+
 // ---------- screens ----------
 const App = {
   content: null, progress: null, state: { screen: "pick" }, root: null,
@@ -811,7 +860,12 @@ const App = {
     col.appendChild(top); col.appendChild(situ); col.appendChild(pitch.root); col.appendChild(ctrl); col.appendChild(sheet); col.appendChild(showBtn); col.appendChild(modalBack);
 
     let cancel = null, phase = "intro", picked = null, timerRaf = null, labelsOn = true, sheetNode = null;
-    const onKey = (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); if (e.key === "Enter" && !modalBack.hidden) startFromModal(); };
+    let activeStepper = null;
+    const onKey = (e) => {
+      if (e.key === "Escape" && !sheet.hidden) closeSheet();
+      if (e.key === "Enter" && !modalBack.hidden) startFromModal();
+      if (activeStepper && !sheet.hidden) { if (e.key === "ArrowRight") activeStepper.next(); if (e.key === "ArrowLeft") activeStepper.back(); }
+    };
     document.addEventListener("keydown", onKey);
     this._cleanup = () => { if (cancel) cancel(); if (timerRaf) cancelAnimationFrame(timerRaf); document.removeEventListener("keydown", onKey); };
     const firstRec = self.progress.results[inst.id] && self.progress.results[inst.id].first;
@@ -890,25 +944,36 @@ const App = {
         setTimeout(() => { pitch.setBanner(null); if (mode === "alt") showAltCard(choice); else showFeedback(); }, 950);
       });
     }
+    const upHead = (g) => g === "great" ? "WHY IT WORKS" : g === "good" ? "WHAT WAS GOOD" : "THE UPSIDE";
+    function verdictPages(c) {
+      return [
+        { head: "YOUR CHOICE: " + c.label.toUpperCase(), body: [ratingChip(c.grade), el("div", { class: "stepPrinciple" }, c.principle || inst.principle), el("div", { class: "swipeHint" }, "Swipe, or tap Next, to see what happened →")] },
+        { head: "WHAT HAPPENED", body: [el("p", { class: "stepText" }, c.why)] },
+        { head: upHead(c.grade), body: [el("div", { class: "prow good big" }, "✓ " + c.pro)] },
+        { head: "WATCH OUT", body: [el("div", { class: "prow warn big" }, "! " + c.con)] },
+      ];
+    }
     function showFeedback() {
       phase = "feedback"; const c = picked, isFirstTry = firstRec === undefined || firstRec === c.grade;
       const others = inst.choices.filter((x) => x.id !== c.id);
       pitch.setOverlays(geom, null, c.id, freezeWorld); renderCtrl("result", { id: c.id });
-      openSheet(el("div", { class: "card" },
-        ratingChip(c.grade), el("div", { class: "eyebrow" }, c.principle || inst.principle), el("p", { class: "why" }, c.why),
-        el("div", { class: "prow good" }, "✓ " + c.pro), el("div", { class: "prow warn" }, "! " + c.con),
-        el("div", { class: "kidLine" }, "“" + inst.kidLine + "”"),
+      const pages = verdictPages(c).concat([{ head: "REMEMBER", body: [
+        el("div", { class: "kidLine big" }, "“" + inst.kidLine + "”"),
         (!isFirstTry && firstRec) ? el("div", { class: "firstNote" }, "First answer counted for stars: " + RATINGS[firstRec].label.toLowerCase()) : null,
         el("div", { class: "divider" }), el("div", { class: "miniHead" }, "Watch the other options"),
         el("div", { class: "altRow" }, others.map((o) => el("button", { class: "btn ghost", onClick: () => runOutcome(o, "alt") }, "▶ " + o.label))),
         el("div", { class: "btnRow" }, el("button", { class: "btn ghost", onClick: runIntro }, "Try this one again"),
-          el("button", { class: "btn primary", onClick: () => self.go(isLast ? { screen: "summary", position, levelId } : { screen: "play", position, levelId, idx: idx + 1 }) }, isLast ? "Finish level" : "Next scenario →"))));
+          el("button", { class: "btn primary", onClick: () => self.go(isLast ? { screen: "summary", position, levelId } : { screen: "play", position, levelId, idx: idx + 1 }) }, isLast ? "Finish level" : "Next scenario →")) ] }]);
+      activeStepper = stepper(pages);
+      openSheet(el("div", { class: "card" }, activeStepper.root));
     }
     function showAltCard(choice) {
       phase = "altCard"; renderCtrl("result", { id: choice.id });
-      openSheet(el("div", { class: "card" }, ratingChip(choice.grade), el("div", { class: "eyebrow" }, choice.principle || inst.principle), el("p", { class: "why" }, choice.why),
-        el("div", { class: "prow good" }, "✓ " + choice.pro), el("div", { class: "prow warn" }, "! " + choice.con),
-        el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: () => { pitch.update(outcomeWorld(play, inst, picked, freezeWorld, 1)); showFeedback(); } }, "Back to results"))));
+      const pages = verdictPages(choice).concat([{ head: "BACK TO YOUR RESULT", body: [
+        el("p", { class: "stepText" }, "That was “" + choice.label + "”. Your own choice is waiting on the results card."),
+        el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: () => { pitch.update(outcomeWorld(play, inst, picked, freezeWorld, 1)); showFeedback(); } }, "Back to results")) ] }]);
+      activeStepper = stepper(pages);
+      openSheet(el("div", { class: "card" }, activeStepper.root));
     }
     function runTimeout() {
       phase = "timeout"; pitch.setOverlays(null); renderCtrl("timeout");
