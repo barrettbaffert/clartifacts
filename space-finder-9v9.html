@@ -136,6 +136,9 @@
   .stepDot.on { background: #F2F94F; }
   .stepNext { flex: 0 0 auto; }
   @media (prefers-reduced-motion: reduce) { .pageIn { animation: none; } }
+  .lessonCol { max-width: 760px; align-self: center; }
+  .lessonCard { background: #101F33; border: 1px solid #1D3450; padding: 16px 18px; }
+  .lessonDiagram { margin: 4px 0; }
   .modalBack { position: fixed; inset: 0; z-index: 70; background: rgba(5,10,18,0.62); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .modalBack[hidden] { display: none; }
   .modal { width: min(560px, 100%); background: #101F33; border: 1px solid #1D3450; border-radius: 18px; padding: 18px 20px 16px;
@@ -401,7 +404,7 @@ function buildContent() {
   const byPosition = {};
   PLAYABLE.forEach((pos) => {
     byPosition[pos] = {};
-    LEVELS.forEach((l) => { byPosition[pos][l.id] = l.id === "L0" ? SHAPES.map((sh) => ({ id: sh.id, shape: true, title: sh.title })) : instances.filter((i) => i.you === pos && i.level === l.id); });
+    LEVELS.forEach((l) => { byPosition[pos][l.id] = l.lesson ? [] : l.id === "L0" ? SHAPES.map((sh) => ({ id: sh.id, shape: true, title: sh.title })) : instances.filter((i) => i.you === pos && i.level === l.id); });
   });
 
   // ---- lints ----
@@ -562,6 +565,37 @@ function pitchDefs() {
       svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: T.tele })),
     svg("radialGradient", { id: "vignette", cx: "50%", cy: "45%", r: "75%" },
       svg("stop", { offset: "60%", "stop-color": "rgba(0,0,0,0)" }), svg("stop", { offset: "100%", "stop-color": "rgba(0,0,0,0.35)" })));
+}
+
+// Small comparison diagrams for the lesson slides.
+function lessonDiagram(kind) {
+  const box = el("div", { class: "lessonDiagram" });
+  const sv = svg("svg", { viewBox: "0 0 100 40", style: "width:100%;height:auto;display:block" });
+  const pitch = (x, y, w, h, label) => {
+    const g = svg("g");
+    g.appendChild(svg("rect", { x, y, width: w, height: h, rx: 1, fill: T.turfA, stroke: T.chalk, "stroke-width": 0.4, opacity: 0.95 }));
+    g.appendChild(svg("line", { x1: x + w / 2, y1: y, x2: x + w / 2, y2: y + h, stroke: T.chalk, "stroke-width": 0.3, opacity: 0.8 }));
+    g.appendChild(svg("circle", { cx: x + w / 2, cy: y + h / 2, r: Math.min(w, h) * 0.12, fill: "none", stroke: T.chalk, "stroke-width": 0.3, opacity: 0.8 }));
+    g.appendChild(svg("text", { x: x + w / 2, y: y + h + 4, "text-anchor": "middle", "font-size": 3.2, "font-weight": 800, fill: T.text, style: "font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, label));
+    return g;
+  };
+  const dot = (x, y, n, you) => svg("g", { transform: "translate(" + x + " " + y + ")" }, svg("circle", { r: 1.6, fill: you ? T.you : T.mate, stroke: "#FFFFFF", "stroke-width": 0.3 }), svg("text", { y: 0.75, "text-anchor": "middle", "font-size": 2, "font-weight": 800, fill: T.ink, style: "font-family:'Barlow Condensed',sans-serif" }, n));
+  if (kind === "formations") {
+    // 7v7 in a 2-3-1, 9v9 in the 4-3-1; both drawn attacking to the right
+    const a = pitch(3, 4, 40, 27, "7v7 · 2-3-1");
+    [[7, 17.5, "1"], [14, 11, "2"], [14, 24, "3"], [23, 8, "7"], [22, 17.5, "6"], [23, 27, "8"], [33, 17.5, "9"]].forEach((d) => a.appendChild(dot(d[0], d[1], d[2])));
+    const b = pitch(52, 2, 45, 31, "9v9 · 4-3-1 (ours)");
+    [[56, 17.5, "1"], [63, 6, "3"], [62, 13, "5"], [62, 22, "4"], [63, 29, "2"], [72, 10, "7"], [70, 17.5, "6"], [72, 25, "8"], [84, 17.5, "9"]].forEach((d) => b.appendChild(dot(d[0], d[1], d[2])));
+    sv.appendChild(a); sv.appendChild(b);
+  } else if (kind === "pitches") {
+    // to scale: 60x40 yd vs 75x50 yd
+    const k = 0.52;
+    const a = pitch(4, 20 - 40 * k / 2, 60 * k, 40 * k, "7v7 · about 60 × 40 yards");
+    const b = pitch(48, 20 - 50 * k / 2, 75 * k, 50 * k, "9v9 · about 75 × 50 yards");
+    sv.appendChild(a); sv.appendChild(b);
+  }
+  box.appendChild(sv);
+  return box;
 }
 
 // Pitch view with live actors. Returns an object with update(world), setTrails, setOverlays, setDim, setBanner.
@@ -748,6 +782,7 @@ const App = {
     else if (st.screen === "home") view = this.renderHome();
     else if (st.screen === "summary") view = this.renderSummary();
     else if (st.screen === "shape") view = this.renderShape();
+    else if (st.screen === "lesson") view = this.renderLesson();
     else view = this.renderPlay();
     this.root.appendChild(view);
   },
@@ -804,11 +839,12 @@ const App = {
       const n = starsFor(list, progress), played = playedCount(list, progress);
       const locked = levelLocked(lvl.id, pos, content, progress);
       const stars = el("span", null, list.map((_, i) => el("span", { class: i < n ? "star on" : "star" }, "★")));
-      const card = el("button", { class: "setCard" + (locked ? " locked" : ""), onClick: () => { if (!locked && list.length) this.go({ screen: lvl.id === "L0" ? "shape" : "play", position: pos, levelId: lvl.id, idx: 0 }); } },
-        el("div", { class: "setTag" }, (lvl.noGate ? "" : "LEVEL " + li + " · ") + lvl.tag),
+      const seen = lvl.lesson && progress.results[lvl.id];
+      const card = el("button", { class: "setCard" + (locked ? " locked" : ""), onClick: () => { if (lvl.lesson) this.go({ screen: "lesson", position: pos, levelId: lvl.id }); else if (!locked && list.length) this.go({ screen: lvl.id === "L0" ? "shape" : "play", position: pos, levelId: lvl.id, idx: 0 }); } },
+        el("div", { class: "setTag" }, (lvl.noGate ? "" : "LEVEL " + (li - 1) + " · ") + lvl.tag),
         el("div", { class: "setName" }, lvl.name),
         el("div", { class: "setDesc" }, lvl.desc),
-        el("div", { class: "setFoot" }, stars, el("span", { class: "doneCt" }, locked ? "🔒 one star in each earlier level" : (list.length ? (played + "/" + list.length + " played") : "coming soon"))));
+        el("div", { class: "setFoot" }, lvl.lesson ? el("span", { class: "doneCt" }, LESSON.length + " slides") : stars, el("span", { class: "doneCt" }, lvl.lesson ? (seen ? "✓ seen" : "") : locked ? "🔒 one star in each earlier level" : (list.length ? (played + "/" + list.length + " played") : "coming soon"))));
       grid.appendChild(card);
     });
     home.appendChild(grid);
@@ -827,6 +863,29 @@ const App = {
       el("div", { class: "btnRow center" },
         el("button", { class: "btn ghost", onClick: () => this.go({ screen: levelId === "L0" ? "shape" : "play", position, levelId, idx: 0 }) }, "Replay this level"),
         el("button", { class: "btn primary", onClick: () => this.go({ screen: "home", position }) }, "All levels"))));
+  },
+
+  renderLesson() {
+    const { position } = this.state, self = this, lvl = LEVELS.find((l) => l.id === "LS");
+    const col = el("div", { class: "playCol lessonCol" });
+    col.appendChild(el("div", { class: "topBar" },
+      el("button", { class: "btn tiny ghost", onClick: () => self.go({ screen: "home", position }) }, "‹ Levels"),
+      el("span", { class: "crumbTag" }, lvl.tag), el("span", { class: "scnTitle" }, lvl.name)));
+    const pages = LESSON.map((sl) => ({ head: sl.head, body: [
+      el("div", { class: "stepPrinciple" }, sl.title),
+      sl.diagram ? lessonDiagram(sl.diagram) : null,
+      el("p", { class: "stepText" }, sl.text),
+      sl.last ? el("div", { class: "btnRow" },
+        el("button", { class: "btn ghost", onClick: () => self.go({ screen: "home", position }) }, "All levels"),
+        el("button", { class: "btn primary", onClick: () => self.go({ screen: "shape", position, levelId: "L0", idx: 0 }) }, "Start the warm-up ▶")) : null,
+    ] }));
+    const st = stepper(pages);
+    const onKey = (e) => { if (e.key === "ArrowRight") st.next(); if (e.key === "ArrowLeft") st.back(); };
+    document.addEventListener("keydown", onKey);
+    this._cleanup = () => document.removeEventListener("keydown", onKey);
+    if (!this.progress.results[lvl.id]) { this.progress.results[lvl.id] = { first: "seen" }; saveProgress(this.progress); }
+    col.appendChild(el("div", { class: "card lessonCard" }, st.root));
+    return col;
   },
 
   renderShape() {
@@ -1127,6 +1186,7 @@ const PRESETS = {
 };
 
 const LEVELS = [
+  { id:"LS", name:"7v7 → 9v9", tag:"LESSON · WHAT'S NEW", desc:"A quick slide show: what stays the same and what changes when you move up from 7v7 to 9v9.", noGate:true, lesson:true },
   { id:"L0", name:"Set the Shape", tag:"WARM-UP · GOAL KICKS", desc:"Drag all nine of us to where we belong for our goal kick and for theirs, then check the shape.", noGate:true },
   { id:"L1", name:"Get Free",      tag:"ATTACK · MOVE FIRST",     desc:"Move before the ball comes. Every freeze is while the ball is still travelling; tap the spot you run to." },
   { id:"L2", name:"Head Up",       tag:"ATTACK · FORWARD FIRST",  desc:"Decide before it arrives. Pick the pass or the run in the first three seconds." },
@@ -1168,6 +1228,22 @@ const SHAPES = [
       RCB: "The centre backs step up together near halfway to keep the team short, with their striker in front of them and one of them always in front of goal.",
       LCB: "The centre backs step up together near halfway to keep the team short, with their striker in front of them and one of them always in front of goal.",
       GK: "1 steps up to the edge of the box behind the high line, ready to deal with a long kick over the top." } },
+];
+
+/* Lesson slides: 7v7 vs 9v9 (US Soccer small-sided standards; ages are the US ones). */
+const LESSON = [
+  { head: "MOVING UP", title: "7v7 to 9v9: what changes?", text: "You have played 7v7. Now it is 9v9: two more teammates, a bigger pitch, and a few new rules. Most of the game is exactly the same. Swipe through to see what is new.", diagram: "formations" },
+  { head: "SAME", title: "The big ideas don't change", text: "With the ball: spread out and make the pitch big. Without it: squeeze in and make it small. Pass and move. Look before the ball gets to you. When we defend, one goes, one stays." },
+  { head: "DIFFERENT", title: "Two more players each", text: "7v7 is a keeper and six. 9v9 is a keeper and eight. Our shape is four defenders, three midfielders and a striker: the 4-3-1. More teammates means more passes to choose from, and more space to cover.", diagram: "formations" },
+  { head: "DIFFERENT", title: "A bigger pitch", text: "A 7v7 pitch is about 60 by 40 yards. A 9v9 pitch is about 75 by 50. That is roughly a third more grass each way: passes travel further, runs are longer, and there is more space between the lines. Look early.", diagram: "pitches" },
+  { head: "DIFFERENT", title: "Bigger goals, longer halves", text: "The goals grow from about 6.5 by 18.5 feet to up to 7 by 21. The halves grow from 25 minutes to 30. Keepers have more to cover, and everyone runs more, so pace yourself and think." },
+  { head: "DIFFERENT", title: "No build-out line", text: "In 7v7 the other team has to back off behind the build-out line at goal kicks. In 9v9 there is no line: they can press the moment the ball is kicked. So our goal-kick shape has to be ready before the kick. That is what the warm-up practises." },
+  { head: "DIFFERENT", title: "The keeper can kick it long", text: "In 7v7 the keeper cannot punt. In 9v9 punts and drop kicks are allowed, but rolling or passing to a free teammate is still the better first choice. Long is a decision, not a panic." },
+  { head: "DIFFERENT", title: "Offside starts at halfway", text: "In 7v7 you could not be offside between halfway and the build-out line. In 9v9 you can be offside anywhere in their half. The striker can wait at the halfway line, but not behind their last defender." },
+  { head: "DIFFERENT", title: "A real back four", text: "Two centre backs move like they are tied together by a rope, and one is always in front of goal. The fullbacks give the width: high and wide when we have the ball, tucked in when we do not. One goes, one stays." },
+  { head: "DIFFERENT", title: "A midfield three", text: "6 stays behind the attack as the safety and the shield. 7 and 8 go and help the striker, from just inside, so 9 is never on an island." },
+  { head: "SAME", title: "Your 7v7 habits still win", text: "Corners of the box for the centre backs, the touchline for the fullbacks, get on the half-turn, look over your shoulder, play forward if you can. Everything you learned in 7v7, on a bigger stage." },
+  { head: "READY?", title: "Start with the shape", text: "Do the Set the Shape warm-up first, then Get Free. Heading: still none at U11; at U12 it is allowed, but keep the ball on the ground and your head up.", last: true },
 ];
 
 /* Plays and scenarios: generated by assemble.py from authoring/plays/*.json. Keyframes are [ms,x,y] (plays) or [t01,x,y] (outcomes). */
