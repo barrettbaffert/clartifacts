@@ -1,6 +1,6 @@
 /* clartifacts service worker — offline-first
    Bump VERSION whenever any page is updated so devices pick up changes. */
-const VERSION = "clartifacts-v15";
+const VERSION = "clartifacts-v16";
 const CORE = [
   "./",
   "index.html",
