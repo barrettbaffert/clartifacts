@@ -81,6 +81,7 @@
     .pitchWrap > svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   }
   .pitchWrap > svg { width: 100%; height: 100%; display: block; }
+  .pitchWrap.shape { aspect-ratio: 100 / 76; width: clamp(300px, calc((100vh - 232px) * 1.3158), 100%); touch-action: none; }
   .ctrlRow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; min-height: 48px; }
   .ctrlRow .hint { font-size: 14px; }
   .legendChip { display: flex; align-items: center; gap: 8px; background: rgba(10,20,32,0.8);
@@ -400,7 +401,7 @@ function buildContent() {
   const byPosition = {};
   PLAYABLE.forEach((pos) => {
     byPosition[pos] = {};
-    LEVELS.forEach((l) => { byPosition[pos][l.id] = instances.filter((i) => i.you === pos && i.level === l.id); });
+    LEVELS.forEach((l) => { byPosition[pos][l.id] = l.id === "L0" ? SHAPES.map((sh) => ({ id: sh.id, shape: true, title: sh.title })) : instances.filter((i) => i.you === pos && i.level === l.id); });
   });
 
   // ---- lints ----
@@ -465,6 +466,7 @@ function buildContent() {
     LEVELS.forEach((l) => {
       const seen = {};
       byPosition[pos][l.id].forEach((i) => {
+        if (!i.playId) return;
         const b = i.playId.replace(/\.m$/, "");
         const side = /\.m$/.test(i.playId) ? "m" : "b";
         if (seen[b] && seen[b] !== side) bad(pos + "/" + l.id, "sees play " + b + " and its mirror in one level (" + i.id + ")");
@@ -525,6 +527,7 @@ function levelLocked(levelId, position, content, progress) {
   if (!lvl || !lvl.unlock) return false;
   const idx = LEVELS.findIndex((l) => l.id === levelId);
   for (let i = 0; i < idx; i++) {
+    if (LEVELS[i].noGate) continue;
     const list = content.byPosition[position][LEVELS[i].id];
     if (list.length && starsFor(list, progress) === 0) return true;
   }
@@ -744,6 +747,7 @@ const App = {
     if (st.screen === "pick") view = this.renderPick();
     else if (st.screen === "home") view = this.renderHome();
     else if (st.screen === "summary") view = this.renderSummary();
+    else if (st.screen === "shape") view = this.renderShape();
     else view = this.renderPlay();
     this.root.appendChild(view);
   },
@@ -800,8 +804,8 @@ const App = {
       const n = starsFor(list, progress), played = playedCount(list, progress);
       const locked = levelLocked(lvl.id, pos, content, progress);
       const stars = el("span", null, list.map((_, i) => el("span", { class: i < n ? "star on" : "star" }, "★")));
-      const card = el("button", { class: "setCard" + (locked ? " locked" : ""), onClick: () => { if (!locked && list.length) this.go({ screen: "play", position: pos, levelId: lvl.id, idx: 0 }); } },
-        el("div", { class: "setTag" }, "LEVEL " + (li + 1) + " · " + lvl.tag),
+      const card = el("button", { class: "setCard" + (locked ? " locked" : ""), onClick: () => { if (!locked && list.length) this.go({ screen: lvl.id === "L0" ? "shape" : "play", position: pos, levelId: lvl.id, idx: 0 }); } },
+        el("div", { class: "setTag" }, (lvl.noGate ? "" : "LEVEL " + li + " · ") + lvl.tag),
         el("div", { class: "setName" }, lvl.name),
         el("div", { class: "setDesc" }, lvl.desc),
         el("div", { class: "setFoot" }, stars, el("span", { class: "doneCt" }, locked ? "🔒 one star in each earlier level" : (list.length ? (played + "/" + list.length + " played") : "coming soon"))));
@@ -821,8 +825,116 @@ const App = {
       el("div", { class: "bigStars" }, list.map((_, i) => el("span", { class: i < n ? "star lg on" : "star lg" }, "★"))),
       el("p", { class: "sub" }, msg),
       el("div", { class: "btnRow center" },
-        el("button", { class: "btn ghost", onClick: () => this.go({ screen: "play", position, levelId, idx: 0 }) }, "Replay this level"),
+        el("button", { class: "btn ghost", onClick: () => this.go({ screen: levelId === "L0" ? "shape" : "play", position, levelId, idx: 0 }) }, "Replay this level"),
         el("button", { class: "btn primary", onClick: () => this.go({ screen: "home", position }) }, "All levels"))));
+  },
+
+  renderShape() {
+    const { position, idx } = this.state, sh = SHAPES[idx], isLast = idx === SHAPES.length - 1, self = this;
+    const lvl = LEVELS.find((l) => l.id === "L0");
+    const col = el("div", { class: "playCol" });
+    col.appendChild(el("div", { class: "topBar" },
+      el("button", { class: "btn tiny ghost", onClick: () => self.go({ screen: "home", position }) }, "‹ Levels"),
+      el("span", { class: "crumbTag" }, sh.tag), el("span", { class: "scnTitle" }, sh.title),
+      el("span", { class: "meta" }, lvl.name + " · " + (idx + 1) + " of " + SHAPES.length + " · you are #" + NUM[position] + ", " + ROLE_NAME[position])));
+    col.appendChild(el("p", { class: "situationBar" }, sh.intro));
+    const wrap = el("div", { class: "pitchWrap shape" });
+    const s = svg("svg", { viewBox: "0 0 100 76", style: "width:100%;height:100%;display:block;touch-action:none" });
+    s.appendChild(pitchDefs()); s.appendChild(pitchStatic());
+    s.appendChild(svg("rect", { x: 0, y: 64, width: 100, height: 12, fill: "#0E1B2D" }));
+    s.appendChild(svg("text", { x: 2.5, y: 67.2, "font-size": 2.2, "font-weight": 800, fill: T.dim, style: "font-family:'Barlow Condensed',sans-serif;letter-spacing:.3" }, "DRAG US ONTO THE PITCH"));
+    const zonesG = svg("g"), themG = svg("g"), oursG = svg("g");
+    s.appendChild(zonesG); s.appendChild(themG); s.appendChild(oursG);
+    Object.keys(sh.them).forEach((id) => { const p = sh.them[id]; themG.appendChild(svg("g", { transform: "translate(" + p[0] + " " + p[1] + ")" }, svg("circle", { r: 1.7, fill: T.opp, stroke: id === "oGK" ? T.gkRing : "rgba(255,255,255,0.75)", "stroke-width": id === "oGK" ? 0.55 : 0.4 }))); });
+    themG.appendChild(svg("circle", { cx: sh.ball[0], cy: sh.ball[1], r: 0.95, fill: "#FFFFFF", stroke: T.ink, "stroke-width": 0.3 }));
+    const traySlot = {}; OUR_IDS.forEach((id, i) => { traySlot[id] = [8 + i * 10.5, 71.5]; });
+    const pos = {}, placed = {}, discs = {}, rings = {};
+    const setPos = (id, p) => { pos[id] = p; discs[id].setAttribute("transform", "translate(" + p[0].toFixed(2) + " " + p[1].toFixed(2) + ")"); };
+    const pt = s.createSVGPoint();
+    const toBoard = (e) => { pt.x = e.clientX; pt.y = e.clientY; const m = s.getScreenCTM(); if (!m) return [50, 70]; const q = pt.matrixTransform(m.inverse()); return [q.x, q.y]; };
+    let drag = null;
+    OUR_IDS.forEach((id) => {
+      const isYou = id === position;
+      const g = svg("g", { style: "cursor:grab" });
+      if (isYou) g.appendChild(svg("circle", { class: "halo", r: 3.0, fill: "none", stroke: T.you, "stroke-width": 0.45 }));
+      rings[id] = svg("circle", { r: 2.7, fill: "none", stroke: "none", "stroke-width": 0.6 });
+      g.appendChild(rings[id]);
+      g.appendChild(svg("circle", { r: 4.5, fill: "transparent" }));
+      g.appendChild(svg("circle", { class: "dot", r: 1.9, fill: isYou ? T.you : T.mate, stroke: id === "GK" ? T.gkRing : "#FFFFFF", "stroke-width": id === "GK" ? 0.55 : 0.4 }));
+      g.appendChild(svg("text", { y: 0.9, "text-anchor": "middle", "font-size": 2.4, "font-weight": 800, fill: T.ink, style: "font-family:'Barlow Condensed',sans-serif;pointer-events:none" }, NUM[id]));
+      g.addEventListener("pointerdown", (e) => { e.preventDefault(); drag = { id }; try { g.setPointerCapture(e.pointerId); } catch (x) {} g.style.cursor = "grabbing"; oursG.appendChild(g); });
+      g.addEventListener("pointermove", (e) => { if (!drag || drag.id !== id) return; const q = toBoard(e); setPos(id, [Math.min(98, Math.max(2, q[0])), Math.min(74, Math.max(2, q[1]))]); });
+      const endDrag = (e) => { if (!drag || drag.id !== id) return; drag = null; g.style.cursor = "grab"; const p = pos[id];
+        if (p[1] > 62.5) { placed[id] = null; setPos(id, traySlot[id]); } else { placed[id] = [Math.min(96, Math.max(4, p[0])), Math.min(60, Math.max(4, p[1]))]; setPos(id, placed[id]); }
+        mark(id, null); updateHint(); };
+      g.addEventListener("pointerup", endDrag); g.addEventListener("pointercancel", endDrag);
+      oursG.appendChild(g); discs[id] = g; placed[id] = null; setPos(id, traySlot[id]);
+    });
+    wrap.appendChild(s); col.appendChild(wrap);
+    const ctrl = el("div", { class: "ctrlRow" }); col.appendChild(ctrl);
+    const hint = el("div", { class: "hint bright" });
+    const checkBtn = el("button", { class: "btn primary", style: { flex: "0 0 auto" }, onClick: () => check() }, "Check my shape");
+    const showBtn = el("button", { class: "btn ghost", onClick: () => showModel() }, "Show me the shape");
+    const resetBtn = el("button", { class: "btn tiny ghost", onClick: () => reset() }, "↺ Start over");
+    ctrl.appendChild(hint); ctrl.appendChild(checkBtn); ctrl.appendChild(showBtn); ctrl.appendChild(resetBtn);
+    const sheet = el("div", { class: "sheet", hidden: "true" }); col.appendChild(sheet);
+    const modalBack = el("div", { class: "modalBack", hidden: "true" }); col.appendChild(modalBack);
+    let checks = 0, cancel = null, solved = false, nextBtn = null;
+    const nextState = () => isLast ? { screen: "summary", position, levelId: "L0" } : { screen: "shape", position, levelId: "L0", idx: idx + 1 };
+    const nextLabel = isLast ? "Finish warm-up" : "Next: " + SHAPES[idx + 1].title;
+    function mark(id, state) { rings[id].setAttribute("stroke", state === "ok" ? T.great : state === "bad" ? T.opp : "none"); }
+    function updateHint() { const n = OUR_IDS.filter((id) => placed[id]).length; hint.textContent = solved ? "That's the shape. Study it, then move on." : n < 9 ? (9 - n) + " still to place" : "All nine placed. Check the shape!"; }
+    function direction(id) {
+      const p = placed[id], m = sh.model[id], dx = p[0] - m[0], dy = p[1] - m[1], t = sh.tol * 0.6, out = [];
+      if (Math.abs(dx) > t) out.push(dx > 0 ? "too far forward" : "too deep");
+      if (Math.abs(dy) > t) out.push(Math.abs(p[1] - 32) < Math.abs(m[1] - 32) ? "too narrow" : "too wide");
+      return out.length ? out.join(" and ") : "just off the spot";
+    }
+    function check() {
+      if (solved) return;
+      const missing = OUR_IDS.filter((id) => !placed[id]);
+      if (missing.length) { hint.textContent = "Drag " + missing.map((id) => "#" + NUM[id]).join(", ") + " onto the pitch first"; return; }
+      checks++;
+      const wrong = [];
+      OUR_IDS.forEach((id) => { const ok = dist(placed[id], sh.model[id]) <= sh.tol; mark(id, ok ? "ok" : "bad"); if (!ok) wrong.push(id); });
+      const grade = wrong.length === 0 ? "great" : wrong.length <= 2 ? "good" : "risky";
+      if (checks === 1) self.record(sh.id, grade);
+      if (wrong.length === 0) solved = true;
+      const body = el("div", { class: "card" }, ratingChip(grade),
+        el("div", { class: "eyebrow" }, wrong.length === 0 ? "All nine in the right spot" : (9 - wrong.length) + " of 9 in the right spot"),
+        wrong.length ? el("div", { class: "miniHead" }, "Fix these") : el("p", { class: "why" }, "That is the shape. Every player has a job and a reason to be there."),
+        el("div", { class: "altRow" }, wrong.map((id) => el("div", { class: "prow warn" }, "#" + NUM[id] + " (" + ROLE_NAME[id] + ") is " + direction(id) + ". " + sh.why[id]))),
+        el("div", { class: "btnRow" },
+          wrong.length ? el("button", { class: "btn ghost", onClick: () => { sheet.hidden = true; hint.textContent = "Move the red ones, then check again"; } }, "Fix them") : null,
+          wrong.length ? el("button", { class: "btn ghost", onClick: () => { sheet.hidden = true; showModel(); } }, "Show me") : null,
+          el("button", { class: "btn primary", onClick: () => self.go(nextState()) }, nextLabel)));
+      sheet.innerHTML = ""; sheet.appendChild(el("div", { class: "sheetHandle" }));
+      sheet.appendChild(el("button", { class: "sheetClose", "aria-label": "Hide", onClick: () => { sheet.hidden = true; } }, "×"));
+      sheet.appendChild(body); sheet.hidden = false;
+      if (wrong.length === 0) addNext();
+    }
+    function addNext() { if (nextBtn) return; nextBtn = el("button", { class: "btn primary", style: { flex: "0 0 auto" }, onClick: () => self.go(nextState()) }, nextLabel); ctrl.appendChild(nextBtn); updateHint(); }
+    function showModel() {
+      if (checks === 0) { checks++; self.record(sh.id, "risky"); }
+      solved = true; sheet.hidden = true;
+      const from = {}; OUR_IDS.forEach((id) => { from[id] = pos[id].slice(); });
+      if (cancel) cancel();
+      cancel = animate(1300, (p) => { const e = smoothstep(p); OUR_IDS.forEach((id) => { const a = from[id], b = sh.model[id]; setPos(id, [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e]); }); },
+        () => { cancel = null; OUR_IDS.forEach((id) => { placed[id] = sh.model[id].slice(); mark(id, "ok"); }); zonesG.innerHTML = "";
+          OUR_IDS.forEach((id) => zonesG.appendChild(svg("circle", { cx: sh.model[id][0], cy: sh.model[id][1], r: sh.tol, fill: "rgba(67,217,123,0.08)", stroke: T.great, "stroke-width": 0.35, "stroke-dasharray": "1.5 1.5", opacity: 0.6 })));
+          addNext(); });
+    }
+    function reset() { if (cancel) { cancel(); cancel = null; } solved = false; zonesG.innerHTML = ""; if (nextBtn) { nextBtn.remove(); nextBtn = null; } OUR_IDS.forEach((id) => { placed[id] = null; setPos(id, traySlot[id]); mark(id, null); }); sheet.hidden = true; updateHint(); }
+    this._cleanup = () => { if (cancel) cancel(); };
+    col._shapeApi = { set: (id, p) => { placed[id] = p; setPos(id, p); mark(id, null); updateHint(); }, check, showModel, reset };
+    updateHint();
+    modalBack.appendChild(el("div", { class: "modal" },
+      el("div", { class: "crumbTag" }, "WARM-UP · " + sh.tag), el("div", { class: "modalTitle" }, sh.title),
+      el("p", { class: "modalText" }, sh.intro),
+      el("div", { class: "modalNote" }, "Drag the numbered players from the tray onto the pitch. Evens play on the right, odds on the left. Then tap \"Check my shape\"."),
+      el("div", { class: "btnRow" }, el("button", { class: "btn primary", onClick: () => { modalBack.hidden = true; } }, "Got it ▶"))));
+    if (!self.devNoRecord) modalBack.hidden = false;
+    return col;
   },
 
   renderPlay() {
@@ -1015,6 +1127,7 @@ const PRESETS = {
 };
 
 const LEVELS = [
+  { id:"L0", name:"Set the Shape", tag:"WARM-UP · GOAL KICKS", desc:"Drag all nine of us to where we belong for our goal kick and for theirs, then check the shape.", noGate:true },
   { id:"L1", name:"Get Free",      tag:"ATTACK · MOVE FIRST",     desc:"Move before the ball comes. Every freeze is while the ball is still travelling; tap the spot you run to." },
   { id:"L2", name:"Head Up",       tag:"ATTACK · FORWARD FIRST",  desc:"Decide before it arrives. Pick the pass or the run in the first three seconds." },
   { id:"L3", name:"Hold the Line", tag:"DEFENSE · SHAPE",         desc:"Stay in your spot for a reason. Press, cover, balance, and sprint home." },
@@ -1022,6 +1135,40 @@ const LEVELS = [
   { id:"L5", name:"Steal It",      tag:"DEFENSE · READ THE PASS", desc:"Read the passer and tap where you'd step to cut it out. Unlocks after one star in each earlier level.", unlock:"oneStarPerLevel" },
 ];
 
+
+/* Shape boards (warm-up level L0): drag all nine of our players, then check each against a model spot. */
+const SHAPES = [
+  { id: "SH1", title: "Our Goal Kick", tag: "IN POSSESSION", ball: [6, 32],
+    intro: "Our keeper has a goal kick. There is no build-out line at 9v9, so their forwards can press straight away. Drag all nine of us to where we should stand so the keeper has short passes, a pass around the press, and a long option.",
+    them: { oGK: [95, 32], oR: [66, 16], oC: [70, 32], oL: [66, 48], oRM: [44, 22], oLM: [44, 42], oRF: [27, 15], oCF: [23, 32], oLF: [27, 49] },
+    tol: 7.5,
+    model: { GK: [7, 32], RCB: [17, 49], LCB: [17, 15], RB: [27, 58], LB: [27, 6], CM: [27, 32], RCM: [42, 44], LCM: [42, 20], ST: [56, 32] },
+    why: {
+      GK: "1 takes the kick from the middle of the goal area, so both sides are open, and stays central as the spare player.",
+      RCB: "The centre backs split to the corners of the box before the kick, so the keeper has two easy passes and one striker can't press both.",
+      LCB: "The centre backs split to the corners of the box before the kick, so the keeper has two easy passes and one striker can't press both.",
+      RB: "Fullbacks get to the touchline a few steps higher than the centre backs: that is the pass around the press, and it stretches their forwards.",
+      LB: "Fullbacks get to the touchline a few steps higher than the centre backs: that is the pass around the press, and it stretches their forwards.",
+      CM: "6 sits in front of the centre backs, out of the striker's shadow, ready to drop beside one if they get pressed.",
+      RCM: "The 8s stay inside on different lines, half-turned in the pockets behind their forwards, so there is a forward pass after the first pass.",
+      LCM: "The 8s stay inside on different lines, half-turned in the pockets behind their forwards, so there is a forward pass after the first pass.",
+      ST: "9 stays high near halfway as the outlet and pins their defenders back; the keeper needs that long option when nobody is free." } },
+  { id: "SH2", title: "Their Goal Kick", tag: "OUT OF POSSESSION", ball: [93, 32],
+    intro: "Their keeper has a goal kick. We set a compact shape in their half and press only on a trigger (a bad touch or a back pass). Drag all nine of us into a shape that stays short from front to back and keeps the middle closed.",
+    them: { oGK: [92, 32], oR: [82, 16], oC: [85, 34], oL: [82, 48], oRM: [68, 22], oLM: [68, 42], oRF: [52, 12], oCF: [54, 32], oLF: [52, 52] },
+    tol: 7.5,
+    model: { ST: [78, 32], RCM: [64, 44], LCM: [64, 20], CM: [55, 32], RB: [46, 54], LB: [46, 10], RCB: [44, 40], LCB: [44, 24], GK: [13, 32] },
+    why: {
+      ST: "9 starts near the edge of their box, showing the keeper one way, and presses the first pass only on a trigger.",
+      RCM: "The 8s sit inside, between their wide players and the middle, ready to step to the nearest mid the moment 9 presses.",
+      LCM: "The 8s sit inside, between their wide players and the middle, ready to step to the nearest mid the moment 9 presses.",
+      CM: "6 stays central in front of the back four, screening the pass into their striker.",
+      RB: "Fullbacks tuck in level with the back line, a few yards wider than the centre backs: not glued to a winger, but close enough to reach one.",
+      LB: "Fullbacks tuck in level with the back line, a few yards wider than the centre backs: not glued to a winger, but close enough to reach one.",
+      RCB: "The centre backs step up together near halfway to keep the team short, with their striker in front of them and one of them always in front of goal.",
+      LCB: "The centre backs step up together near halfway to keep the team short, with their striker in front of them and one of them always in front of goal.",
+      GK: "1 steps up to the edge of the box behind the high line, ready to deal with a long kick over the top." } },
+];
 
 /* Plays and scenarios: generated by assemble.py from authoring/plays/*.json. Keyframes are [ms,x,y] (plays) or [t01,x,y] (outcomes). */
 const PLAYS = [
