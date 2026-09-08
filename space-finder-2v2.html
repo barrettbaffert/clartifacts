@@ -190,5 +190,7 @@ react-dom/cjs/react-dom-client.production.js:
 */
 </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}</script>
+<style>.homeLink{display:inline-flex;align-items:center;gap:6px;font-family:'Nunito',sans-serif;font-weight:800;font-size:12.5px;color:#9FB2C8;text-decoration:none;border:1px solid #1D3450;border-radius:999px;padding:6px 12px;margin-bottom:10px}.homeLink:hover{color:#F2F94F;border-color:#F2F94F}</style>
+<script>(function(){function add(){var m=document.querySelector(".masthead");if(!m||m.querySelector(".homeLink"))return;var a=document.createElement("a");a.className="homeLink";a.href="index.html";a.textContent="🦐 All apps";m.insertBefore(a,m.firstChild);}new MutationObserver(add).observe(document.getElementById("root"),{childList:true,subtree:true});add();})();</script>
 </body>
 </html>
