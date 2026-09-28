@@ -44,6 +44,7 @@
   .tag { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-size: 11px;
     font-weight: 700; padding: 4px 10px; border-radius: 999px; }
   .tag.soccer { color: #F2F94F; border: 1px solid rgba(242,249,79,.45); }
+  .tag.basketball { color: #FF9C3B; border: 1px solid rgba(255,156,59,.45); }
   .tag.school { color: #7FD1FF; border: 1px solid rgba(127,209,255,.45); }
   .title { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 800;
     margin: 2px 0 4px; }
@@ -68,6 +69,14 @@
    created: YYYY-MM-DD
    ============================================================ */
 const PAGES = [
+  {
+    title: "Wheel Trainer",
+    emoji: "🏀",
+    category: "basketball",
+    created: "2026-09-27",
+    desc: "Learn our 1-3-1 wheel one spot at a time. Watch it turn, then tap where you go when the play freezes.",
+    href: "wheel-trainer.html"
+  },
   {
     title: "Space Finder 9v9",
     emoji: "🥅",
@@ -97,6 +106,7 @@ const PAGES = [
 const FILTERS = [
   { id: "all", label: "All" },
   { id: "soccer", label: "⚽ Soccer" },
+  { id: "basketball", label: "🏀 Basketball" },
   { id: "school", label: "📚 School" },
 ];
 let active = "all";

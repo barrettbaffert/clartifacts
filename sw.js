@@ -1,12 +1,13 @@
 /* clartifacts service worker — offline-first
    Bump VERSION whenever any page is updated so devices pick up changes. */
-const VERSION = "clartifacts-v19";
+const VERSION = "clartifacts-v20";
 const CORE = [
   "./",
   "index.html",
   "spelling.html",
   "space-finder-2v2.html",
   "space-finder-9v9.html",
+  "wheel-trainer.html",
   "icon-shrimp.png",
   "icon-spell.png",
 ];

@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Wheel Trainer</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Wheel Trainer" />
+<meta name="theme-color" content="#0B1524" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%230B1524'/%3E%3Ccircle cx='90' cy='90' r='58' fill='%23FF9C3B'/%3E%3Cpath d='M32 90h116M90 32v116M49 49c22 22 22 60 0 82M131 49c-22 22-22 60 0 82' fill='none' stroke='%230B1524' stroke-width='6'/%3E%3C/svg%3E" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap');
+  :root {
+    --night:#0B1524; --panel:#101F33; --edge:#1D3450; --text:#EAF2FA; --dim:#9FB2C8; --accent:#F2F94F;
+    --team:#53D8FF; --you:#F2F94F; --opp:#FF6E5E; --ball:#FF9C3B; --great:#43D97B; --good:#F5C542; --risky:#FF9C5B;
+    --floor:#132A45; --paint:rgba(83,216,255,0.07); --cline:rgba(234,242,250,0.55); --rim:#FF9C3B;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--night); }
+  body { padding-top: env(safe-area-inset-top); color: var(--text); font-family: 'Nunito', system-ui, sans-serif; }
+  .root { min-height: 100vh; background: var(--night);
+    background-image: radial-gradient(1200px 600px at 50% -10%, #14273F 0%, var(--night) 60%);
+    color: var(--text); font-family: 'Nunito', system-ui, sans-serif; display: flex; justify-content: center;
+    padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
+  .col { max-width: 980px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .col.narrow { max-width: 760px; }
+  .masthead { text-align: center; padding: 18px 12px 4px; }
+  .homeLink { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12.5px; color: var(--dim);
+    text-decoration: none; border: 1px solid var(--edge); border-radius: 999px; padding: 6px 12px; margin-bottom: 10px; background: none; cursor: pointer; font-family: inherit; }
+  .homeLink:hover { color: var(--accent); border-color: var(--accent); }
+  .kick { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 3px; font-size: 13px; color: var(--dim); font-weight: 700; }
+  h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: clamp(38px, 7vw, 60px); margin: 6px 0 8px; letter-spacing: 1px; }
+  .accent { color: var(--accent); }
+  .sub { color: var(--dim); max-width: 620px; margin: 0 auto; font-size: 15px; line-height: 1.55; }
+  .spotRow { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .youBadge { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; letter-spacing: 1px; font-size: 17px;
+    background: var(--you); color: #0A1420; border-radius: 999px; padding: 6px 14px; }
+  .setGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 10px; }
+  .setCard { text-align: left; background: var(--panel); border: 1px solid var(--edge); border-radius: 16px; padding: 16px;
+    color: var(--text); cursor: pointer; font-family: inherit; transition: transform .12s ease, border-color .12s ease; display: flex; flex-direction: column; }
+  .setCard:hover, .setCard:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+  .setTag { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-size: 11.5px; color: var(--accent); font-weight: 700; }
+  .setTag.play { color: var(--team); }
+  .setName { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 800; margin: 4px 0 6px; }
+  .setDesc { color: var(--dim); font-size: 13.5px; line-height: 1.45; flex: 1; }
+  .setFoot { margin-top: 12px; min-height: 22px; font-size: 12.5px; color: var(--dim); font-weight: 800; }
+  .star { color: rgba(255,255,255,0.18); font-size: 20px; margin-right: 2px; }
+  .star.on { color: var(--accent); }
+  .star.lg { font-size: 42px; margin: 0 4px; }
+  .grownups { margin-top: 18px; background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: 12px 16px; color: var(--dim); font-size: 13.5px; line-height: 1.55; }
+  .grownups summary { cursor: pointer; font-weight: 800; color: var(--text); }
+  .grownups a { color: var(--team); }
+  .grownups h3 { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px; color: var(--text); font-size: 17px; margin: 14px 0 4px; }
+  .grownups ul { margin: 4px 0; padding-left: 20px; }
+
+  .topBar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .scnTitle { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 800; line-height: 1.05; }
+  .meta { font-size: 12.5px; color: var(--dim); font-weight: 800; margin-left: auto; }
+  .caption { min-height: 50px; font-size: 16px; line-height: 1.45; margin: 0; }
+  .caption small { display: block; color: var(--dim); font-size: 14px; }
+  .caption b.me { color: var(--you); }
+  .courtWrap { position: relative; width: min(100%, max(290px, calc((100vh - 270px) * 1.064))); margin: 0 auto;
+    border-radius: 16px; overflow: hidden; border: 1px solid var(--edge); box-shadow: 0 12px 40px rgba(0,0,0,0.45); }
+  .courtWrap > svg { display: block; width: 100%; height: auto; touch-action: manipulation; }
+  .courtWrap.tapping { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242,249,79,0.5), 0 12px 40px rgba(0,0,0,0.45); cursor: crosshair; }
+  .ctrlRow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; min-height: 48px; }
+  .prompt { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: .5px; color: var(--accent); text-align: center; }
+  .hint { color: var(--dim); font-size: 14px; font-weight: 700; }
+  .btn { white-space: nowrap; font-family: inherit; font-weight: 800; font-size: 14.5px; border-radius: 12px; padding: 10px 16px; min-height: 44px; cursor: pointer; border: 1px solid transparent; }
+  .btn.primary { background: var(--accent); color: #0A1420; }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--edge); }
+  .btn.ghost:hover { border-color: var(--accent); }
+  .btn.on { border-color: var(--you); background: rgba(242,249,79,0.12); }
+  .btn:focus-visible, .chipBtn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .chipBtn { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; width: 40px; height: 40px; border-radius: 999px;
+    border: 2px solid var(--team); background: transparent; color: var(--team); cursor: pointer; }
+  .chipBtn.on { background: var(--you); border-color: var(--you); color: #0A1420; }
+
+  .lessonCard { background: var(--panel); border: 1px solid var(--edge); border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .stepTitle { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; line-height: 1.1; margin: 0; }
+  .stepText { font-size: 17px; line-height: 1.6; margin: 0; }
+  .kidLine { font-size: 19px; line-height: 1.4; color: var(--accent); font-weight: 800; font-style: italic; }
+  .lessonCard .courtWrap { width: min(100%, 460px); }
+  .stepNav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .stepDots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .stepDot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.18); }
+  .stepDot.done { background: rgba(242,249,79,0.45); }
+  .stepDot.on { background: var(--accent); }
+  .pageIn { animation: pageIn .18s ease-out; }
+  @keyframes pageIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+  .sheet { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 60; width: min(640px, calc(100% - 20px));
+    max-height: 72vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--edge); border-bottom: none; border-radius: 18px 18px 0 0;
+    padding: 14px 18px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px rgba(0,0,0,0.55); animation: sheetUp .22s ease-out;
+    display: flex; flex-direction: column; gap: 8px; }
+  @keyframes sheetUp { from { transform: translate(-50%, 28px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+  .grade { align-self: flex-start; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; letter-spacing: 1.5px; font-size: 15px;
+    padding: 4px 12px; border-radius: 999px; color: #0A1420; }
+  .fbTitle { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 800; line-height: 1.1; }
+  .why { font-size: 16px; line-height: 1.55; margin: 0; }
+  .note { font-size: 14.5px; line-height: 1.45; border-radius: 8px; padding: 8px 10px; background: rgba(255,156,91,0.12); color: #FFD9BE; }
+  .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .btnRow .primary { flex: 1; }
+  .modalBack { position: fixed; inset: 0; z-index: 70; background: rgba(5,10,18,0.7); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { width: min(620px, 100%); max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px;
+    padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; animation: pop .22s ease-out; }
+  .modal .courtWrap { width: min(100%, 420px); }
+  .modalTitle { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; line-height: 1.05; }
+  .pickList { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+  .pickCard { background: rgba(10,20,32,0.55); border: 1px solid var(--edge); border-radius: 12px; padding: 10px 12px; color: var(--text); cursor: pointer; text-align: left; font-family: inherit; }
+  .pickCard.on { border-color: var(--you); }
+  .pickCard .pk { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; }
+  .pickCard .pd { color: var(--dim); font-size: 12.5px; line-height: 1.4; margin-top: 2px; }
+  .center { text-align: center; }
+  @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .pulse { animation: pulseOp 1.15s ease-in-out infinite; }
+  @keyframes pulseOp { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .pulse, .sheet, .modal, .pageIn { animation: none; } }
+  @media (max-width: 600px) { .scnTitle { font-size: 23px; } .stepTitle { font-size: 26px; } .stepText { font-size: 16px; } }
+</style>
+</head>
+<body>
+<div id="root" class="root"></div>
+<script>
+'use strict';
+/* ============================================================
+   WHEEL TRAINER — our 1-3-1 wheel (as Coach described it, Sept 2026)
+   Court: half court, viewBox 0 0 500 470, 10 units = 1 ft. Hoop at the TOP (the view a player has
+   dribbling up the floor). Left/right = the player's left/right facing the hoop.
+   NFHS markings: 12 ft lane, FT line 19 ft from baseline, 3-pt arc 19'9" from rim centre.
+   ============================================================ */
+const S = {
+  START: [250, 445], TOP: [250, 290], LW: [85, 200], RW: [415, 200], LC: [32, 42], RC: [468, 42],
+  LE: [178, 200], RE: [322, 200], LB: [168, 82], RB: [332, 82], RIM: [250, 52], BACK: [250, 440]
+};
+const R = { great: 45, good: 85 };
+const SIDE = { L: "left", R: "right" }, OPP = { L: "R", R: "L" };
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const lerp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+const ease = (x) => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const inLane = (p) => p[0] > 190 && p[0] < 310 && p[1] < 190;
+const mirror = (p) => [500 - p[0], p[1]];
+const REDUCE = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const SPOTS = {
+  1: { name: "Point guard", where: "Top", kind: "perim", desc: "Brings it up, passes to a wing, cuts to that corner." },
+  2: { name: "Right wing", where: "Right wing", kind: "perim", desc: "Catches, looks inside, dribbles to the top, cuts, lifts." },
+  3: { name: "Left wing", where: "Left wing", kind: "perim", desc: "Catches, looks inside, dribbles to the top, cuts, lifts." },
+  4: { name: "Elbow post", where: "Left elbow", kind: "post", desc: "Slides down to the block, then flashes back up. Posts swap high and low." },
+  5: { name: "Block post", where: "Right block", kind: "post", desc: "Flashes to the elbow, then goes back to the low post. Posts swap high and low." }
+};
+
+/* ---------- storage ---------- */
+const KEY = "wheel-trainer-v1";
+function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+const store = Object.assign({ spot: 5, stars: {}, done: {} }, load());
+function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+function setStars(id, n) { store.stars[id] = Math.max(store.stars[id] || 0, n); save(); }
+
+/* ---------- tiny DOM helpers ---------- */
+const NS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in attrs || {}) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) { if (c == null || c === false) continue; e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }
+  return e;
+}
+const root = document.getElementById("root");
+
+/* ---------- animation bookkeeping (cancel everything on screen change) ---------- */
+let running = [];
+function tween(ms, fn, done) {
+  if (REDUCE) ms = Math.min(ms, 120);
+  const t0 = performance.now(); let id, alive = true;
+  const step = (now) => { if (!alive) return; const k = Math.min(1, (now - t0) / ms); fn(k); if (k < 1) id = requestAnimationFrame(step); else if (done) done(); };
+  id = requestAnimationFrame(step);
+  const handle = { cancel() { alive = false; cancelAnimationFrame(id); } }; running.push(handle); return handle;
+}
+function later(ms, fn) { const t = setTimeout(fn, ms); running.push({ cancel() { clearTimeout(t); } }); }
+function stopAll() { running.forEach((r) => r.cancel()); running = []; document.querySelectorAll(".sheet, .modalBack").forEach((n) => n.remove()); }
+
+/* ---------- court view ---------- */
+function courtView() {
+  const wrap = h("div", { class: "courtWrap" });
+  const svg = sv("svg", { viewBox: "0 0 500 470", role: "img", "aria-label": "Half court, hoop at the top" }, wrap);
+  sv("rect", { x: 0, y: 0, width: 500, height: 470, fill: "var(--floor)" }, svg);
+  const zones = sv("g", {}, svg);
+  const L = { fill: "none", stroke: "var(--cline)", "stroke-width": 3 };
+  sv("rect", { x: 190, y: 0, width: 120, height: 190, fill: "var(--paint)", stroke: "var(--cline)", "stroke-width": 3 }, svg);
+  sv("path", { d: "M190 190 A60 60 0 0 0 310 190", ...L }, svg);
+  sv("path", { d: "M190 190 A60 60 0 0 1 310 190", ...L, "stroke-dasharray": "9 9" }, svg);
+  sv("path", { d: "M52.5 0 L52.5 52.5 A197.5 197.5 0 0 0 447.5 52.5 L447.5 0", ...L }, svg);
+  sv("path", { d: "M190 470 A60 60 0 0 1 310 470", ...L }, svg);
+  sv("rect", { x: 178, y: 70, width: 12, height: 10, fill: "var(--cline)" }, svg);
+  sv("rect", { x: 310, y: 70, width: 12, height: 10, fill: "var(--cline)" }, svg);
+  sv("line", { x1: 220, y1: 40, x2: 280, y2: 40, stroke: "var(--cline)", "stroke-width": 5 }, svg);
+  sv("circle", { cx: 250, cy: 52.5, r: 9, fill: "none", stroke: "var(--rim)", "stroke-width": 4 }, svg);
+  sv("rect", { x: 1.5, y: 1.5, width: 497, height: 467, ...L }, svg);
+  const labels = sv("g", {}, svg), trails = sv("g", {}, svg), arrows = sv("g", {}, svg), marks = sv("g", {}, svg);
+  const defsG = sv("g", {}, svg), playersG = sv("g", {}, svg), ballG = sv("g", {}, svg), ui = sv("g", {}, svg);
+  const pl = {}, df = [];
+  let ballDot = null;
+
+  function player(id) {
+    if (pl[id]) return pl[id];
+    const g = sv("g", {}, playersG);
+    const ring = sv("circle", { r: 26, fill: "none", stroke: "var(--you)", "stroke-width": 3, class: "pulse", visibility: "hidden" }, g);
+    const c = sv("circle", { r: 18, "stroke-width": 3, stroke: "#0A1420" }, g);
+    const t = sv("text", { y: 6.5, "text-anchor": "middle", "font-size": 19, "font-weight": 800, "font-family": "Nunito, sans-serif", fill: "#0A1420" }, g);
+    t.textContent = id;
+    return (pl[id] = { g, c, ring });
+  }
+  const api = {
+    wrap, svg, zones, labels, trails, arrows, marks, ui,
+    setPlayers(map, you, opts) {
+      opts = opts || {};
+      for (const id in pl) if (!(id in map)) { pl[id].g.remove(); delete pl[id]; }
+      for (const id in map) {
+        const p = player(id), [x, y] = map[id];
+        p.g.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+        const me = String(id) === String(you);
+        p.c.setAttribute("fill", me ? "var(--you)" : "var(--team)");
+        p.g.setAttribute("opacity", opts.dimOthers && !me ? 0.45 : 1);
+        p.ring.setAttribute("visibility", me && opts.ring ? "visible" : "hidden");
+      }
+    },
+    setDefs(list) {
+      while (df.length > list.length) df.pop().remove();
+      list.forEach((p, i) => {
+        if (!df[i]) { const g = sv("g", {}, defsG); sv("path", { d: "M-10 -10 L10 10 M10 -10 L-10 10", stroke: "var(--opp)", "stroke-width": 5, "stroke-linecap": "round" }, g); df[i] = g; }
+        df[i].setAttribute("transform", `translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})`);
+      });
+    },
+    setBall(p, held) {
+      if (!p) { if (ballDot) { ballDot.remove(); ballDot = null; } return; }
+      if (!ballDot) { ballDot = sv("circle", { r: 9, fill: "var(--ball)", stroke: "#5A2A00", "stroke-width": 2 }, ballG); }
+      const q = held ? [p[0] + 15, p[1] - 15] : p;
+      ballDot.setAttribute("cx", q[0].toFixed(1)); ballDot.setAttribute("cy", q[1].toFixed(1));
+    },
+    clear(layer) { while (layer.firstChild) layer.firstChild.remove(); },
+    toCourt(evt) {
+      const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+      const r = pt.matrixTransform(svg.getScreenCTM().inverse()); return [r.x, r.y];
+    }
+  };
+  return api;
+}
+
+function arrow(layer, pts, kind) {
+  const col = { cut: "var(--text)", you: "var(--you)", pass: "var(--ball)", fix: "var(--great)", look: "var(--dim)", back: "var(--opp)" }[kind] || "var(--text)";
+  const dash = kind === "pass" ? "10 8" : kind === "look" ? "3 7" : "0";
+  const a = pts[pts.length - 2], b = pts[pts.length - 1];
+  const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+  const end = [b[0] - ux * 24, b[1] - uy * 24];
+  const first = pts[0], nx = pts[1][0] - first[0], ny = pts[1][1] - first[1], nd = Math.hypot(nx, ny) || 1;
+  const start = [first[0] + nx / nd * 22, first[1] + ny / nd * 22];
+  const mid = pts.slice(1, -1);
+  const dStr = "M" + [start, ...mid, end].map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L");
+  sv("path", { d: dStr, fill: "none", stroke: col, "stroke-width": 4, "stroke-dasharray": dash, "stroke-linecap": "round", "stroke-linejoin": "round" }, layer);
+  if (kind !== "look") sv("path", { d: `M${end[0] + ux * 13} ${end[1] + uy * 13} L${end[0] - uy * 9} ${end[1] + ux * 9} L${end[0] + uy * 9} ${end[1] - ux * 9}Z`, fill: col }, layer);
+}
+function courtLabel(layer, p, text, col) {
+  const t = sv("text", { x: p[0], y: p[1], "text-anchor": "middle", "font-size": 22, "font-weight": 800, "font-family": "'Barlow Condensed', sans-serif",
+    "letter-spacing": 1, fill: col || "var(--accent)", stroke: "#0B1524", "stroke-width": 5, "paint-order": "stroke" }, layer);
+  t.textContent = text; return t;
+}
+function spotRing(layer, p, col) { sv("circle", { cx: p[0], cy: p[1], r: 26, fill: "none", stroke: col || "var(--great)", "stroke-width": 4, "stroke-dasharray": "6 5" }, layer); }
+function tapMark(layer, p, col) { sv("path", { d: `M${p[0] - 11} ${p[1] - 11} L${p[0] + 11} ${p[1] + 11} M${p[0] + 11} ${p[1] - 11} L${p[0] - 11} ${p[1] + 11}`, stroke: col, "stroke-width": 5, "stroke-linecap": "round" }, layer); sv("circle", { cx: p[0], cy: p[1], r: 17, fill: "none", stroke: col, "stroke-width": 3 }, layer); }
+function zoneLane(layer) { sv("rect", { x: 190, y: 0, width: 120, height: 190, fill: "rgba(242,249,79,0.22)" }, layer); }
+
+/* ============================================================
+   THE WHEEL ENGINE — builds a possession as a list of beats.
+   Coach: 1 passes to a wing and cuts to that corner; 4 slides to the block and 5 comes up to the elbow
+   (overload). No shot: the wing dribbles to the top and it repeats the other way; posts swap high/low.
+   Our fill-ins (flagged for parents): the far-corner player lifts to the wing when the ball goes to the top;
+   posts wait for the pass to the wing.
+   Each beat: moves {id: [x,y]}, optional pass [from,to] or carrier id, and dec {id: decision} for anyone
+   who has a job at that moment. Decision targets are where that player should end up.
+   ============================================================ */
+function buildPossession(start, cycles) {
+  const pos = { 1: S.START, 2: S.RW, 3: S.LW, 4: S.LE, 5: S.RB };
+  const at = { top: 1, LW: 3, RW: 2, LC: 0, RC: 0, elbow: 4, block: 5 };
+  let ball = 1; const beats = [];
+  const push = (b) => {
+    b.from = Object.assign({}, pos); b.ballFrom = ball; b.moves = b.moves || {}; b.dec = b.dec || {};
+    for (const k in b.moves) pos[k] = b.moves[k];
+    if (b.pass) ball = b.pass[1];
+    b.to = Object.assign({}, pos); b.ballTo = ball; beats.push(b);
+  };
+  push({ type: "setup", cap: "Set up: #1 has the ball, wings wide, #4 on the left elbow, #5 on the right block.", ms: 1000 });
+  push({ type: "dribbleUp", cap: "#1 brings it up the middle.", moves: { 1: S.TOP }, carrier: 1, ms: 1300 });
+  let sd = start;
+  for (let i = 0; i < cycles; i++) {
+    const o = OPP[sd], top = at.top, wing = at[sd + "W"], el = at.elbow, bl = at.block;
+    push({ type: "pass", cap: `#${top} passes to the ${SIDE[sd]} wing.`, pass: [top, wing], ms: 650,
+      dec: { [top]: { kind: i === 0 ? "passFirst" : "passWing", targets: i === 0 ? [S.LW, S.RW] : [S[sd + "W"]], side: sd } } });
+    const dec = {
+      [top]: { kind: "cutCorner", targets: [S[sd + "C"]], side: sd },
+      [el]: { kind: "goLow", targets: [S[sd + "B"]], side: sd, cross: (pos[el][0] < 250) !== (sd === "L") },
+      [bl]: { kind: "flash", targets: [S[sd + "E"]], side: sd, cross: (pos[bl][0] < 250) !== (sd === "L") }
+    };
+    if (at[o + "W"]) dec[at[o + "W"]] = { kind: "holdWing", targets: [pos[at[o + "W"]]], side: sd };
+    if (at[o + "C"]) dec[at[o + "C"]] = { kind: "holdCornerWeak", targets: [pos[at[o + "C"]]], side: sd };
+    push({ type: "afterPass", cap: `#${top} cuts to the ${SIDE[sd]} corner. #${el} slides down to the block, #${bl} flashes up to the elbow.`,
+      sub: "Four of us on the ball's side: that's the overload.", moves: { [top]: S[sd + "C"], [el]: S[sd + "B"], [bl]: S[sd + "E"] }, ms: 1400, dec });
+    at[sd + "C"] = top; at.top = 0; at.elbow = bl; at.block = el;
+    if (i === cycles - 1) { push({ type: "end", cap: `#${wing} looks for a shot or a pass inside.`, sub: "Keep turning the wheel until someone is open.", ms: 1400 }); break; }
+    push({ type: "look", cap: `#${wing} looks inside… no shot.`, ms: 800 });
+    const lift = at[o + "C"];
+    const mv = { [wing]: S.TOP }; if (lift) mv[lift] = S[o + "W"];
+    const dec2 = {
+      [wing]: { kind: "dribbleTop", targets: [S.TOP], side: sd },
+      [at.elbow]: { kind: "holdPost", targets: [pos[at.elbow]] },
+      [at.block]: { kind: "holdPost", targets: [pos[at.block]] },
+      [at[sd + "C"]]: { kind: "holdCorner", targets: [pos[at[sd + "C"]]] }
+    };
+    if (lift) dec2[lift] = { kind: "liftWing", targets: [S[o + "W"]], side: o };
+    if (at[o + "W"]) dec2[at[o + "W"]] = { kind: "holdWing2", targets: [pos[at[o + "W"]]] };
+    push({ type: "dribbleTop", cap: `#${wing} dribbles it back to the top.` + (lift ? ` #${lift} lifts from the corner to the ${SIDE[o]} wing.` : ""),
+      moves: mv, carrier: wing, ms: 1500, dec: dec2 });
+    at.top = wing; at[sd + "W"] = 0; if (lift) { at[o + "W"] = lift; at[o + "C"] = 0; }
+    push({ type: "swing", cap: "Now run it to the other side.", ms: 600 });
+    sd = o;
+  }
+  return beats;
+}
+const HOLD = { holdPost: "post", holdCorner: "corner", holdCornerWeak: "corner", holdWing: "wing", holdWing2: "wing" };
+
+function fmtCap(text, you) {
+  return text.replace(/#(\d)/g, (m, n) => (String(n) === String(you) ? `<b class="me">${n} (you)</b>` : n));
+}
+
+/* ---------- decision copy ---------- */
+const PROMPT = {
+  passFirst: "You're at the top with the ball. Tap the teammate you pass to.",
+  passWing: "You're at the top with the ball. Tap the teammate you pass to.",
+  cutCorner: "You just passed it. Where do you go?",
+  goLow: (d) => `The ball just went to the ${SIDE[d.side]} wing. Where do you go?`,
+  flash: (d) => `The ball just went to the ${SIDE[d.side]} wing. Where do you go?`,
+  holdWing: "The ball just went to the other wing. Where do you go?",
+  holdCornerWeak: "The ball just went to the other side. Where do you go?",
+  dribbleTop: "You're on the wing with the ball. Nothing is open. Where do you take it?",
+  liftWing: "No shot. The wing is about to dribble it back to the top. Where do you go?",
+  holdPost: "No shot. The wing is about to dribble it back to the top. Where do you go?",
+  holdCorner: "No shot. The wing is about to dribble it back to the top. Where do you go?",
+  holdWing2: "No shot. The wing is about to dribble it back to the top. Where do you go?"
+};
+const FB = {
+  passFirst: () => ({ title: "Pass to a wing", why: "Start the wheel with a pass to a wing, not a dribble into the defense. Either side works. After you pass, you cut to that corner.", kid: "Pass it, then cut." }),
+  passWing: () => ({ title: "Swing it to the other side", why: "The wheel only turns when the ball changes sides. Pass to the wing on the other side, then cut to that corner.", kid: "Ball changes sides, the wheel turns." }),
+  cutCorner: (d) => ({ title: "Cut to the corner", why: `After you pass to the ${SIDE[d.side]} wing, cut to the ${SIDE[d.side]} corner. Now four of us are on that side: wing, corner, block and elbow. That's the overload, and the wing has an easy pass to you.`, kid: "Pass, then corner." }),
+  goLow: (d) => ({ title: d.cross ? "Go to the low post by the ball" : "Slide down to the block",
+    why: `The ball went to the ${SIDE[d.side]} wing, so the elbow player goes to the ${SIDE[d.side]} block. Get there with your defender on your back and a hand up as a target.` + (d.cross ? " You cross the lane to get there, so go quickly. No stopping in the lane." : ""), kid: "Ball to the wing, elbow goes low." }),
+  flash: (d) => ({ title: "Flash to the elbow",
+    why: `The ball went to the ${SIDE[d.side]} wing and the ${SIDE[d.side]} elbow just opened up. Flash there: a quick, hard sprint with two hands up. Now the wing can pass to you, and you can look inside.` + (d.cross ? " You cut across the lane to get there, so keep moving." : ""), kid: "Ball to the wing, block flashes high." }),
+  dribbleTop: () => ({ title: "Dribble it back to the top", why: "No shot? Don't hold it and don't force it. Dribble back to the top of the key. Now you're the point guard, and we run it to the other side.", kid: "Nothing there? Back to the top." }),
+  liftWing: (d) => ({ title: "Lift up to the wing", why: `The ball is going back to the top, and your side is next. Come up out of the corner to the ${SIDE[d.side]} wing, even with the free-throw line, so the point guard has someone to pass to.`, kid: "Ball to the top, I lift to the wing." }),
+  holdPost: () => ({ title: "Hold your spot", why: "The ball is going to the top, not to a wing yet. Posts wait, then move when the ball goes to a wing. Go early and you get there before the ball, and the defense is ready for you. Just keep your feet out of the lane.", kid: "Wait for the pass to the wing." }),
+  holdCorner: () => ({ title: "Stay in the corner", why: "Stay wide in the corner. The ball is about to go to the other side. If you come in now, your defender comes too and crowds the middle.", kid: "Stay wide, stay ready." }),
+  holdCornerWeak: () => ({ title: "Stay in the corner", why: "The ball went to the other side. Stay wide in your corner so your defender has to stay with you instead of helping. Your turn to lift comes when the ball goes back to the top.", kid: "Far side? Stay wide." }),
+  holdWing: () => ({ title: "Stay on your wing", why: "You're the pass on the other side. Stay wide on your wing, even with the free-throw line, hands ready. The ball is coming to you next.", kid: "Stay wide, the ball is coming." }),
+  holdWing2: () => ({ title: "Stay on your wing", why: "The ball is going to the top, and then it comes to you. Stay wide on your wing and be ready to catch.", kid: "Stay wide, the ball is coming." })
+};
+const GRADE = { great: { label: "GREAT", col: "var(--great)" }, good: { label: "CLOSE", col: "var(--good)" }, risky: { label: "NOT QUITE", col: "var(--risky)" } };
+
+function gradeTap(p, targets, opts) {
+  opts = opts || {};
+  let best = Infinity, target = targets[0];
+  for (const t of targets) { const d = dist(p, t); if (d < best) { best = d; target = t; } }
+  let g = best <= R.great ? "great" : best <= R.good ? "good" : "risky";
+  if (opts.zone === "back") { g = p[1] >= 370 ? "great" : p[1] >= 300 ? "good" : "risky"; target = [Math.min(440, Math.max(60, p[0])), 430]; }
+  if (opts.zone === "outLane") { g = !inLane(p) && best <= 110 ? "great" : !inLane(p) ? "good" : "risky"; }
+  if (opts.zone === "lane") { g = inLane(p) ? "great" : "risky"; }
+  const notes = [];
+  if (g !== "great") {
+    if (inLane(p) && !targets.some(inLane) && opts.zone !== "lane") notes.push("That spot is in the lane. When we have the ball you can only stay there 3 seconds.");
+    if (opts.others) for (const id in opts.others) { if (dist(p, opts.others[id]) < 40) { notes.push(`That's where ${id} is. Two players in one spot are easy to guard.`); break; } }
+    if (opts.hold && best > R.good) notes.push("Too early! This time you wait.");
+  }
+  return { g, best, target, notes };
+}
+
+function openSheet(res, fb, buttons) {
+  document.querySelectorAll(".sheet").forEach((n) => n.remove());
+  const gr = GRADE[res.g];
+  const sheet = h("div", { class: "sheet", role: "dialog", "aria-label": fb.title },
+    h("span", { class: "grade", style: `background:${gr.col}` }, gr.label),
+    h("div", { class: "fbTitle" }, fb.title),
+    h("p", { class: "why" }, fb.why),
+    fb.kid ? h("div", { class: "kidLine" }, "“" + fb.kid + "”") : null,
+    res.notes.map((n) => h("div", { class: "note" }, n)),
+    res.g !== "great" ? h("div", { class: "hint" }, "Green ring = the right spot.") : null,
+    h("div", { class: "btnRow" }, buttons.map((b) => h("button", { class: "btn " + (b.primary ? "primary" : "ghost"), onclick: () => { sheet.remove(); b.fn(); } }, b.label))));
+  document.body.appendChild(sheet);
+  const first = sheet.querySelector(".btn.primary"); if (first) first.focus({ preventScroll: true });
+}
+function starsFor(results) {
+  if (!results.length) return 1;
+  const score = results.reduce((a, r) => a + (r.g === "great" ? 1 : r.g === "good" ? 0.5 : 0), 0) / results.length;
+  return score >= 0.9 ? 3 : score >= 0.6 ? 2 : 1;
+}
+function starRow(n, big) { return h("span", {}, [1, 2, 3].map((i) => h("span", { class: "star" + (i <= n ? " on" : "") + (big ? " lg" : "") }, "★"))); }
+function showResults(title, results, onAgain) {
+  const n = starsFor(results);
+  const ct = (g) => results.filter((r) => r.g === g).length;
+  const back = h("div", { class: "modalBack" },
+    h("div", { class: "modal center" },
+      h("div", { class: "modalTitle" }, title),
+      h("div", {}, starRow(n, true)),
+      h("p", { class: "why" }, `${ct("great")} great · ${ct("good")} close · ${ct("risky")} not quite`),
+      h("p", { class: "hint" }, n === 3 ? "You know this spot. Try another spot from the home screen." : "Run it again. Every run makes the pattern more automatic."),
+      h("div", { class: "btnRow" },
+        h("button", { class: "btn primary", onclick: () => { back.remove(); onAgain(); } }, "Go again"),
+        h("button", { class: "btn ghost", onclick: () => { back.remove(); go("home"); } }, "Home"))));
+  document.body.appendChild(back);
+  return n;
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+function go(screen, arg) { stopAll(); window.scrollTo(0, 0); SCREENS[screen](arg); }
+
+function topBar(title, metaNode) {
+  return h("div", { class: "topBar" },
+    h("button", { class: "homeLink", style: "margin:0", onclick: () => go("home") }, "← Wheel home"),
+    h("div", { class: "scnTitle" }, title), metaNode || null);
+}
+
+const SETS = [
+  { id: "words", tag: "LESSON 1", name: "Court Words", desc: "Top, wing, corner, elbow, block, the lane. Learn the spots, then take a quick tap quiz.", open: () => go("lesson", "words") },
+  { id: "basics", tag: "LESSON 2", name: "The Basics", desc: "Flash, hands and eyes, 3 seconds, spacing, catching, sealing, boxing out.", open: () => go("lesson", "basics") },
+  { id: "watch", tag: "LESSON 3", name: "Watch the Wheel", desc: "See our wheel turn. Follow any player around the floor.", open: () => go("watch") },
+  { id: "run", tag: "PLAY", name: "Run the Wheel", desc: "The play freezes when it's your move. Tap where you go.", open: () => go("run"), stars: true },
+  { id: "reads", tag: "PLAY", name: "When It Breaks", desc: "Shots, steals, 3 seconds, a defender in the way. Tap the smart move.", open: () => go("reads"), stars: true },
+  { id: "zone", tag: "EXTRA", name: "If They Play Zone", desc: "How to tell it's a zone, and where the open spots are.", open: () => go("lesson", "zone") }
+];
+
+const SCREENS = {
+  home() {
+    const sp = SPOTS[store.spot];
+    const col = h("div", { class: "col" },
+      h("div", { class: "masthead" },
+        h("a", { class: "homeLink", href: "index.html" }, "🦐 All apps"),
+        h("div", { class: "kick" }, "BASKETBALL · OUR 1-3-1 WHEEL"),
+        h("h1", {}, "Wheel ", h("span", { class: "accent" }, "Trainer")),
+        h("p", { class: "sub" }, "Learn our wheel offense one spot at a time. Watch it turn, then play it: the action freezes and you tap the floor where you'd go."),
+        h("div", { class: "spotRow" },
+          h("span", { class: "hint" }, "You are"),
+          h("span", { class: "youBadge" }, `${store.spot} · ${sp.name.toUpperCase()}`),
+          h("button", { class: "btn ghost", onclick: pickSpot }, "Change spot"))),
+      h("div", { class: "setGrid" }, SETS.map((s) => {
+        const foot = s.stars ? h("span", {}, starRow(store.stars[s.id + ":" + store.spot] || 0), h("span", { style: "margin-left:6px" }, `as #${store.spot}`))
+          : s.id === "words" ? (store.stars.words ? h("span", {}, starRow(store.stars.words), " quiz") : (store.done.words ? "✓ Read" : ""))
+          : (store.done[s.id] ? "✓ Done" : "");
+        return h("button", { class: "setCard", onclick: s.open },
+          h("div", { class: "setTag" + (s.tag === "PLAY" ? " play" : "") }, s.tag),
+          h("div", { class: "setName" }, s.name),
+          h("div", { class: "setDesc" }, s.desc),
+          h("div", { class: "setFoot" }, foot));
+      })),
+      grownUps());
+    root.replaceChildren(col);
+  },
+  lesson(id) { runLesson(id); },
+  watch() { runWatch(); },
+  run() { runPattern(); },
+  reads() { runReads(); },
+  quiz() { runQuiz(); }
+};
+
+function grownUps() {
+  return h("details", { class: "grownups" },
+    h("summary", {}, "For grown-ups: where this comes from"),
+    h("h3", {}, "How we run it"),
+    h("p", {}, "From the coach (Sept 2026): after 1 passes to a wing, 1 cuts to that corner, 4 slides down to the block and 5 comes up to the elbow, overloading one side. If there's no shot, the wing dribbles to the top and the play repeats on the other side. The posts swap each time: the low post goes high and the high post goes low."),
+    h("p", {}, "Our fill-ins, not confirmed by the coach: the first pass usually goes to the left (4's side), the far-corner player lifts back to the wing when the ball goes to the top, and the posts wait for the pass to the wing before they move. Starting spots come from what our player remembered: 4 on the left elbow, 5 on the right block."),
+    h("h3", {}, "Rules we assumed"),
+    h("ul", {},
+      h("li", {}, "League: Arizona Basketball Events Fall League 2026, 5th grade, Tucson. No rules document was published, so we assumed National Federation (high school) rules, as other Arizona club events use."),
+      h("li", {}, "3 seconds: an offensive player can't stay in the lane more than 3 seconds while their team controls the ball in the frontcourt (NFHS Rule 9-7)."),
+      h("li", {}, "Zone and press allowed. USA Basketball recommends no zone or press for ages 9–11, but Arizona club events generally allow both."),
+      h("li", {}, "Court drawn with NFHS lines: 12 ft lane, 19'9\" three-point arc.")),
+    h("h3", {}, "Sources"),
+    h("ul", {},
+      h("li", {}, h("a", { href: "https://en.wikipedia.org/wiki/Wheel_offense", target: "_blank", rel: "noopener" }, "Wheel offense (Wikipedia)"), ": Garland Pinholster's original at Oglethorpe; our team runs a simpler youth version."),
+      h("li", {}, h("a", { href: "https://functionalbasketballcoaching.com/introduction-to-the-wheel-offense/", target: "_blank", rel: "noopener" }, "Functional Basketball Coaching: Intro to the Wheel"), ": the 1-3-1 youth wheel with the post exchange."),
+      h("li", {}, h("a", { href: "https://hoopstudent.com/basketball-wheel-offense/", target: "_blank", rel: "noopener" }, "Hoopstudent: Wheel offense"), ": the screen-based college version, for comparison."),
+      h("li", {}, h("a", { href: "https://www.breakthroughbasketball.com/coaching/youth-guidelines", target: "_blank", rel: "noopener" }, "Breakthrough Basketball: NBA / USA Basketball youth guidelines")),
+      h("li", {}, h("a", { href: "https://grassroots365.com/tournament-rules/", target: "_blank", rel: "noopener" }, "Grassroots 365 tournament rules"), " and ", h("a", { href: "https://www.legacyyouthsports.com/rules", target: "_blank", rel: "noopener" }, "Legacy Youth Sports rules"), ": how Arizona club events handle 5th grade.")));
+}
+
+function pickSpot() {
+  const view = courtView();
+  const startPos = { 1: S.TOP, 2: S.RW, 3: S.LW, 4: S.LE, 5: S.RB };
+  view.setPlayers(startPos, store.spot, { ring: true });
+  const choose = (n) => { store.spot = n; save(); back.remove(); go("home"); };
+  view.svg.addEventListener("pointerdown", (e) => {
+    const p = view.toCourt(e); let bestId = null, best = 60;
+    for (const id in startPos) { const d = dist(p, startPos[id]); if (d < best) { best = d; bestId = +id; } }
+    if (bestId) choose(bestId);
+  });
+  const back = h("div", { class: "modalBack", onclick: (e) => { if (e.target === back) back.remove(); } },
+    h("div", { class: "modal" },
+      h("div", { class: "modalTitle" }, "Pick your starting spot"),
+      h("p", { class: "hint", style: "margin:0" }, "Tap a player on the court or pick below. Most of the app follows you from this spot."),
+      view.wrap,
+      h("div", { class: "pickList" }, [5, 4, 1, 2, 3].map((n) =>
+        h("button", { class: "pickCard" + (n === store.spot ? " on" : ""), onclick: () => choose(n) },
+          h("div", { class: "pk" }, `${n} · ${SPOTS[n].name}`),
+          h("div", { class: "pd" }, `Starts: ${SPOTS[n].where}. ${SPOTS[n].desc}`)))),
+      h("button", { class: "btn ghost", onclick: () => back.remove() }, "Close")));
+  document.body.appendChild(back);
+}
+
+/* ============================================================
+   LESSONS — each step: title, text, kid line, and a court diagram.
+   Diagram: players {id:[x,y]}, you, moves {id:[x,y]} (animated on a loop), arrows [[pts,kind]],
+   defs [[x,y]], ball id or [x,y], labels [[p,text,col]], zone "lane" | "sides", after (quiz launcher).
+   ============================================================ */
+const OVER = { 1: S.LC, 3: S.LW, 4: S.LB, 5: S.LE, 2: S.RW };
+const LESSONS = {
+  words: { title: "Court Words", steps: [
+    { t: "You're looking up the court", x: "Picture yourself dribbling up the floor. The hoop is at the top of the screen. Left and right always mean YOUR left and right as you face the hoop.",
+      d: { labels: [[[110, 330], "LEFT"], [[390, 330], "RIGHT"], [[250, 110], "HOOP ↑"]] } },
+    { t: "The top", x: "The top of the key is the middle of the floor, just outside the three-point line. The point guard starts the wheel from here.",
+      d: { players: { 1: S.TOP }, ball: 1, labels: [[[250, 350], "TOP"]] } },
+    { t: "The wings", x: "Out wide on each side, even with the free-throw line. Coaches call this “free-throw line extended.” Our wings stand here, ready to catch.",
+      d: { players: { 3: S.LW, 2: S.RW }, labels: [[[85, 255], "LEFT WING"], [[415, 255], "RIGHT WING"]], extra: "ftline" } },
+    { t: "The corners", x: "Where the sideline meets the baseline, down near the hoop. In our wheel, the passer cuts to the corner.",
+      d: { players: { 1: S.LC }, labels: [[[60, 100], "CORNER"], [[440, 100], "CORNER"]] } },
+    { t: "The elbows", x: "Where the free-throw line meets the side of the lane. It bends like an elbow. One of our posts is always here.",
+      d: { players: { 4: S.LE }, labels: [[[178, 250], "ELBOW"], [[322, 250], "ELBOW"]] } },
+    { t: "The blocks", x: "The little boxes on the sides of the lane, close to the hoop. Posts stand next to the block with their feet outside the lane.",
+      d: { players: { 5: S.RB }, labels: [[[168, 132], "BLOCK"], [[332, 132], "BLOCK"]] } },
+    { t: "The lane", x: "The painted rectangle under the hoop. It's also called the paint or the key. When we have the ball, you can't stand in it for more than 3 seconds.",
+      d: { zone: "lane", labels: [[[250, 120], "THE LANE"]] } },
+    { t: "Ball side and weak side", x: "The ball side is the half of the floor where the ball is. The other half is the weak side. Our wheel puts four players on the ball side.",
+      d: { zone: "sides", players: OVER, ball: 3, labels: [[[125, 400], "BALL SIDE"], [[375, 400], "WEAK SIDE", "var(--dim)"]] } },
+    { t: "Quick check", x: "Six quick taps. The app names a spot and you tap it on the court.", quiz: true }
+  ] },
+  basics: { title: "The Basics", steps: [
+    { t: "What's a flash?", x: "A flash is a quick, hard sprint into an open space toward the ball. No jogging. Get there fast and show your hands so the passer sees you're open.", k: "Flash = fast + hands up.",
+      d: { players: { 3: S.LW, 4: S.LB, 5: S.RB }, you: 5, ball: 3, moves: { 5: S.LE } } },
+    { t: "Hands up, eyes on the ball", x: "Always know where the ball is. Turn your head so you can see it. Hold your hands up in front of your chest with your fingers spread. That's your target. Passers throw to hands.", k: "See the ball. Show a target.",
+      d: { players: { 3: S.LW, 5: S.LE }, you: 5, ball: 3, arrows: [[[S.LE, S.LW], "look"]] } },
+    { t: "The lane: 1-2-out", x: "The lane is a no-parking zone. When we have the ball, you can't stay in it for more than 3 seconds. Count in your head: 1… 2… out! Cutting through is fine. Just don't stop there.", k: "1-2-out.",
+      d: { zone: "lane", players: { 5: [230, 110], 3: S.LW }, you: 5, ball: 3, moves: { 5: S.LB } } },
+    { t: "Spacing", x: "Stay about 4 or 5 big steps (12–15 feet) from your teammates. If you stand close to a teammate, one defender can guard both of you. Spread out and the defense has to stretch.", k: "Too close = easy to guard.",
+      d: { players: { 3: S.LW, 1: [110, 150], 4: S.LB }, you: 1, ball: 3, moves: { 1: S.LC } } },
+    { t: "Catch: two hands, two feet, face the hoop", x: "Step toward the pass and catch with two hands. Land on both feet (a jump stop). Then turn and face the hoop. Now you can shoot, pass or dribble. That's called triple threat.", k: "Catch, land, face.",
+      d: { players: { 3: S.LW, 5: S.LE }, you: 5, ball: 3, arrows: [[[S.LW, S.LE], "pass"]] } },
+    { t: "Your pivot foot", x: "Once you stop, one foot has to stay on the floor. That's your pivot foot. Spin on it to see the court or keep the ball away from a defender. If you lift it before you dribble, it's traveling.", k: "Pivot, don't travel." },
+    { t: "Cut hard", x: "Walk your defender one way, then cut hard the other way. That's a V-cut. A slow cut is easy to guard. A sharp cut gets you open.", k: "Slow, then GO.",
+      d: { players: { 1: S.TOP, 3: [110, 150] }, you: 3, ball: 1, path: { 3: [[110, 150], [140, 110], S.LW] }, defs: [[125, 175]] } },
+    { t: "Seal in the post", x: "On the block, keep your defender on your back. Wide feet, knees bent, one hand up as a target. Now the wing can pass it right to you.", k: "Defender on my back, hand up.",
+      d: { players: { 3: S.LW, 4: S.LB }, you: 4, ball: 3, defs: [[185, 112]], arrows: [[[S.LW, S.LB], "pass"]] } },
+    { t: "Box out, then crash", x: "When a shot goes up: find a player, turn and put your back on them, stay low, then go get the ball with two hands. A shot from the side often bounces long to the far side, so the high post crashes there.", k: "Find a body, then the ball.",
+      d: { players: { 3: S.LW, 4: S.LB, 5: S.LE }, you: 5, ball: 3, moves: { 5: [320, 90] }, arrows: [[[S.LW, S.RIM], "pass"]] } },
+    { t: "Balance", x: "Someone always stays back. If we miss or lose the ball, that player stops the other team's fast break.", k: "One of us gets back.",
+      d: { players: OVER, you: 2, ball: 3, moves: { 2: [330, 400] } } },
+    { t: "Be patient: ball moves, then you move", x: "The wheel is about timing. Posts move when the ball goes to a wing. The corner player lifts when the ball goes to the top. Go early and you get there before the ball, and the defense is waiting.", k: "Ball moves, I move." },
+    { t: "Why we overload", x: "After the pass and the cut, four of us are on the ball side: wing, corner, block and elbow. The wing has three close passes, and the weak side is almost empty, so there's room to drive.", k: "Four on the ball side.",
+      d: { players: OVER, you: store.spot, ball: 3, zone: "sides" } }
+  ] },
+  zone: { title: "If They Play Zone", steps: [
+    { t: "Man or zone?", x: "In man-to-man, each defender follows one player. In a zone, each defender guards an area and stays there. A common one is the 2-3: two up top and three down low.", k: "Man follows you. Zone stays home.",
+      d: { defs: [[190, 250], [310, 250], [120, 110], [250, 90], [380, 110]], players: {} } },
+    { t: "How to tell", x: "Cut through the lane. If your defender follows you everywhere, it's man. If they stay put and hand you off to someone else, it's a zone. Lots of defenders standing in the lane is another clue.", k: "Did my defender follow me?",
+      d: { defs: [[190, 250], [310, 250], [120, 110], [250, 90], [380, 110]], players: { 3: S.LW }, you: 3, moves: { 3: [360, 120] } } },
+    { t: "Listen for the call", x: "The wheel is built to beat man-to-man. Against a zone, your coach may call something different. Listen and look at the bench." },
+    { t: "Find the gaps", x: "Stand in the space between two defenders. Now both of them have to decide who guards you, and that hesitation gets you open.", k: "Stand in the gaps.",
+      d: { defs: [[190, 250], [310, 250], [120, 110], [250, 90], [380, 110]], players: { 1: [250, 300], 3: [85, 200], 2: [415, 200], 5: [250, 195], 4: [190, 60] }, you: store.spot } },
+    { t: "Flash to the middle", x: "The free-throw line is the soft spot in most zones. Flash there, catch, and face the hoop. The defense has to collapse, and that leaves shooters open.", k: "Middle of the zone = open.",
+      d: { defs: [[190, 250], [310, 250], [120, 110], [250, 90], [380, 110]], players: { 3: S.LW, 5: [250, 110] }, you: 5, ball: 3, moves: { 5: [250, 200] } } },
+    { t: "Move the ball fast", x: "Zones are slow to shift. Quick passes and a pass fake make the defenders run. Hold the ball too long and the zone gets set.", k: "Pass, pass, shot." }
+  ] }
+};
+
+function drawDiagram(view, d, you) {
+  if (!d) return null;
+  view.clear(view.zones); view.clear(view.labels); view.clear(view.arrows);
+  if (d.zone === "lane") zoneLane(view.zones);
+  if (d.zone === "sides") { sv("rect", { x: 0, y: 0, width: 250, height: 470, fill: "rgba(242,249,79,0.10)" }, view.zones); sv("line", { x1: 250, y1: 0, x2: 250, y2: 470, stroke: "var(--accent)", "stroke-width": 2, "stroke-dasharray": "6 8" }, view.zones); }
+  if (d.extra === "ftline") sv("line", { x1: 0, y1: 200, x2: 500, y2: 200, stroke: "var(--accent)", "stroke-width": 2, "stroke-dasharray": "6 8" }, view.zones);
+  (d.labels || []).forEach(([p, t, c]) => courtLabel(view.labels, p, t, c));
+  const players = Object.assign({}, d.players || {});
+  const me = d.you != null ? d.you : null;
+  (d.arrows || []).forEach(([pts, kind]) => arrow(view.arrows, pts, kind));
+  for (const id in d.moves || {}) arrow(view.arrows, [players[id], d.moves[id]], String(id) === String(me) ? "you" : "cut");
+  for (const id in d.path || {}) arrow(view.arrows, d.path[id], String(id) === String(me) ? "you" : "cut");
+  view.setDefs(d.defs || []);
+  const ballAt = (map) => d.ball == null ? null : Array.isArray(d.ball) ? d.ball : map[d.ball];
+  const place = (map) => { view.setPlayers(map, me); const b = ballAt(map); view.setBall(b, !!b && !Array.isArray(d.ball)); };
+  place(players);
+  const hasMotion = Object.keys(d.moves || {}).length || Object.keys(d.path || {}).length;
+  if (!hasMotion) return;
+  const loop = () => {
+    tween(1300, (k) => {
+      const e = ease(k), m = Object.assign({}, players);
+      for (const id in d.moves || {}) m[id] = lerp(players[id], d.moves[id], e);
+      for (const id in d.path || {}) { const pts = d.path[id], seg = pts.length - 1, f = Math.min(seg - 1e-6, e * seg), i = Math.floor(f); m[id] = lerp(pts[i], pts[i + 1], f - i); }
+      place(m);
+    }, () => later(1200, () => { place(players); later(500, loop); }));
+  };
+  later(500, loop);
+}
+
+function runLesson(id) {
+  const L = LESSONS[id]; let i = 0;
+  const col = h("div", { class: "col narrow" });
+  root.replaceChildren(col);
+  const render = () => {
+    stopAll();
+    const st = L.steps[i];
+    const view = st.d ? courtView() : null;
+    const last = i === L.steps.length - 1;
+    const dots = h("div", { class: "stepDots" }, L.steps.map((_, j) => h("span", { class: "stepDot" + (j === i ? " on" : j < i ? " done" : "") })));
+    const nav = h("div", { class: "stepNav" },
+      h("button", { class: "btn ghost", onclick: () => { if (i > 0) { i--; render(); } }, disabled: i === 0 ? "disabled" : null }, "← Back"),
+      last ? h("button", { class: "btn primary", onclick: () => { store.done[id] = 1; save(); go("home"); } }, "Done ✓")
+           : h("button", { class: "btn primary", onclick: () => { i++; render(); } }, "Next →"));
+    const card = h("div", { class: "lessonCard pageIn" },
+      h("div", { class: "hint" }, `${L.title.toUpperCase()} · ${i + 1} OF ${L.steps.length}`),
+      h("h2", { class: "stepTitle" }, st.t),
+      view ? view.wrap : null,
+      h("p", { class: "stepText" }, st.x),
+      st.k ? h("div", { class: "kidLine" }, "“" + st.k + "”") : null,
+      st.quiz ? h("button", { class: "btn primary", onclick: () => { store.done[id] = 1; save(); go("quiz"); } }, "Start the tap quiz") : null,
+      dots, nav);
+    col.replaceChildren(topBar(L.title), card);
+    if (view) drawDiagram(view, st.d);
+  };
+  let sx = null;
+  col.addEventListener("touchstart", (e) => { if (!e.target.closest("svg")) sx = e.touches[0].clientX; }, { passive: true });
+  col.addEventListener("touchend", (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (dx < -60 && i < L.steps.length - 1) { i++; render(); } else if (dx > 60 && i > 0) { i--; render(); } });
+  render();
+}
+
+/* ---------- Court Words tap quiz ---------- */
+function runQuiz() {
+  const Q = [
+    { q: "Tap the right elbow", t: [S.RE], name: "right elbow" }, { q: "Tap the left block", t: [S.LB], name: "left block" },
+    { q: "Tap the top of the key", t: [S.TOP], name: "top" }, { q: "Tap the right corner", t: [S.RC], name: "right corner" },
+    { q: "Tap the left wing", t: [S.LW], name: "left wing" }, { q: "Tap anywhere in the lane", t: [[250, 110]], zone: "lane", name: "lane" }
+  ];
+  let i = 0; const results = [];
+  const view = courtView(), promptEl = h("div", { class: "prompt" }), meta = h("span", { class: "meta" });
+  root.replaceChildren(h("div", { class: "col narrow" }, topBar("Court Words Quiz", meta), view.wrap, h("div", { class: "ctrlRow" }, promptEl)));
+  let armed = false;
+  const ask = () => {
+    view.clear(view.marks); view.clear(view.zones); view.clear(view.labels);
+    if (i >= Q.length) { const n = starsFor(results); setStars("words", n); showResults("Quiz done!", results, () => go("quiz")); return; }
+    meta.textContent = `${i + 1} of ${Q.length}`; promptEl.textContent = Q[i].q; promptEl.className = "prompt"; view.wrap.classList.add("tapping"); armed = true;
+  };
+  view.svg.addEventListener("pointerdown", (e) => {
+    if (!armed) return; armed = false; view.wrap.classList.remove("tapping");
+    const p = view.toCourt(e), q = Q[i], r = gradeTap(p, q.t, { zone: q.zone }); results.push(r);
+    tapMark(view.marks, p, GRADE[r.g].col);
+    if (q.zone === "lane") zoneLane(view.zones); else spotRing(view.marks, q.t[0]);
+    courtLabel(view.labels, q.zone ? [250, 120] : [q.t[0][0], q.t[0][1] + 50], q.name.toUpperCase(), "var(--great)");
+    promptEl.textContent = r.g === "great" ? "Yes! ✓" : r.g === "good" ? "Close. Here it is exactly." : `That's not it. Here's the ${q.name}.`;
+    promptEl.className = "prompt"; i++; later(r.g === "great" ? 1000 : 1900, ask);
+  });
+  ask();
+}
+
+/* ---------- Watch the Wheel ---------- */
+function runWatch() {
+  store.done.watch = 1; save();
+  let follow = store.spot, playing = true, speed = 1, beats, idx, elapsed, last = 0, cur, holder, trail;
+  const view = courtView(), cap = h("p", { class: "caption" });
+  const chips = h("div", { class: "ctrlRow" }, h("span", { class: "hint" }, "Follow:"),
+    [1, 2, 3, 4, 5].map((n) => h("button", { class: "chipBtn" + (n === follow ? " on" : ""), "aria-label": "Follow player " + n, onclick: (e) => { follow = n; chips.querySelectorAll(".chipBtn").forEach((b) => b.classList.toggle("on", b === e.currentTarget)); reset(); } }, String(n))));
+  const playBtn = h("button", { class: "btn ghost", onclick: () => { playing = !playing; playBtn.textContent = playing ? "⏸ Pause" : "▶ Play"; } }, "⏸ Pause");
+  const slowBtn = h("button", { class: "btn ghost", onclick: () => { speed = speed === 1 ? 0.55 : 1; slowBtn.textContent = speed === 1 ? "🐢 Slower" : "🐇 Normal"; } }, "🐢 Slower");
+  root.replaceChildren(h("div", { class: "col narrow" }, topBar("Watch the Wheel"), cap, view.wrap, chips,
+    h("div", { class: "ctrlRow" }, playBtn, h("button", { class: "btn ghost", onclick: () => reset() }, "↺ Restart"), slowBtn)));
+  if (REDUCE) { playing = false; playBtn.textContent = "▶ Play"; }
+  function reset() { beats = buildPossession("L", 6); idx = 0; cur = Object.assign({}, beats[0].from); holder = 1; trail = []; view.clear(view.trails); start(); }
+  function start() {
+    const b = beats[idx]; elapsed = 0;
+    cap.innerHTML = fmtCap(b.cap, follow) + (b.sub ? `<small>${b.sub}</small>` : "");
+    if (b.moves[follow]) { trail.push([b.from[follow], b.moves[follow]]); if (trail.length > 3) trail.shift(); }
+    view.clear(view.trails); trail.forEach(([a, c], j) => sv("line", { x1: a[0], y1: a[1], x2: c[0], y2: c[1], stroke: "var(--you)", "stroke-width": 3, "stroke-dasharray": "6 7", opacity: 0.3 + 0.2 * j }, view.trails));
+  }
+  function frame(now) {
+    if (!alive) return; requestAnimationFrame(frame);
+    const dt = last ? Math.min(100, now - last) : 0; last = now; if (playing) elapsed += dt * speed;
+    const b = beats[idx], dur = b.ms, e = ease(Math.min(1, elapsed / dur));
+    for (const id in b.moves) cur[id] = lerp(b.from[id], b.moves[id], e);
+    view.setPlayers(cur, follow, { dimOthers: false });
+    if (b.pass) view.setBall(lerp(b.from[b.pass[0]], b.from[b.pass[1]], e), e >= 1); else view.setBall(cur[b.carrier || holder], true);
+    if (elapsed > dur + 900) { if (b.pass) holder = b.pass[1]; idx++; if (idx >= beats.length) { reset(); return; } start(); }
+  }
+  let alive = true; running.push({ cancel() { alive = false; } });
+  reset(); requestAnimationFrame(frame);
+}
+
+/* ---------- beat player shared by Run the Wheel ---------- */
+function playBeat(view, b, you, done) {
+  tween(b.ms, (k) => {
+    const e = ease(k), m = {};
+    for (const id in b.from) m[id] = b.moves[id] ? lerp(b.from[id], b.moves[id], e) : b.from[id];
+    view.setPlayers(m, you);
+    if (b.pass) view.setBall(lerp(b.from[b.pass[0]], b.from[b.pass[1]], e), k >= 1);
+    else view.setBall(m[b.carrier || b.ballFrom], true);
+  }, () => later(380, done));
+}
+
+/* ---------- Run the Wheel ---------- */
+function runPattern() {
+  const you = store.spot;
+  let side = Math.random() < 0.5 ? "L" : "R", beats = buildPossession(side, 5), i = 0, holds = 0;
+  const asked = {}, results = [];
+  const view = courtView(), cap = h("p", { class: "caption" }), promptEl = h("div", { class: "hint" }, "Watch the play…"), meta = h("span", { class: "meta" });
+  root.replaceChildren(h("div", { class: "col narrow" }, topBar("Run the Wheel", meta), cap, view.wrap, h("div", { class: "ctrlRow" }, promptEl)));
+  view.setPlayers(beats[0].from, you); view.setBall(beats[0].from[1], true);
+  const setMeta = () => { meta.textContent = `You are #${you} · ${results.length} move${results.length === 1 ? "" : "s"}`; };
+  setMeta();
+  const shouldAsk = (d) => { if (!HOLD[d.kind]) return true; const c = HOLD[d.kind]; if (asked[c] || holds >= 2) return false; asked[c] = 1; holds++; return true; };
+  function next() {
+    if (i >= beats.length) { const n = showResults("Possession over!", results, () => go("run")); setStars("run:" + you, n); return; }
+    const b = beats[i], d = b.dec[you];
+    cap.innerHTML = fmtCap(b.cap, you) + (b.sub ? `<small>${b.sub}</small>` : "");
+    if (d && shouldAsk(d)) return ask(b, d);
+    promptEl.className = "hint"; promptEl.textContent = "Watch the play…";
+    playBeat(view, b, you, () => { i++; next(); });
+  }
+  function ask(b, d) {
+    cap.innerHTML = b.type === "pass" ? "" : fmtCap(beats[i - 1] ? beats[i - 1].cap : "", you);
+    const pr = PROMPT[d.kind]; promptEl.className = "prompt"; promptEl.textContent = typeof pr === "function" ? pr(d) : pr;
+    view.setPlayers(b.from, you, { ring: true }); view.wrap.classList.add("tapping");
+    const onTap = (e) => {
+      view.svg.removeEventListener("pointerdown", onTap); view.wrap.classList.remove("tapping");
+      const p = view.toCourt(e);
+      const others = {}; for (const id in b.to) if (+id !== you) others[id] = b.to[id];
+      const r = gradeTap(p, d.targets, { others, hold: !!HOLD[d.kind] });
+      if (d.kind === "passFirst") {
+        const chosen = r.target === S.RW ? "R" : "L";
+        if (chosen !== side) { side = chosen; beats = buildPossession(side, 5); b = beats[i]; d = b.dec[you]; }
+      }
+      results.push(r); setMeta();
+      tapMark(view.marks, p, GRADE[r.g].col);
+      const fb = FB[d.kind](d);
+      promptEl.className = "hint"; promptEl.textContent = "";
+      cap.innerHTML = fmtCap(b.cap, you) + (b.sub ? `<small>${b.sub}</small>` : "");
+      playBeat(view, b, you, () => {
+        const final = b.pass ? b.to[b.pass[1]] : b.to[you];
+        spotRing(view.marks, final);
+        if (r.g !== "great" && dist(p, final) > 30) arrow(view.marks, [p, final], "fix");
+        openSheet(r, fb, [{ label: "Keep going →", primary: true, fn: () => { view.clear(view.marks); i++; next(); } }]);
+      });
+    };
+    view.svg.addEventListener("pointerdown", onTap);
+  }
+  later(300, next);
+}
+
+/* ============================================================
+   WHEN IT BREAKS — hand-built freezes. Written for the LEFT side; every other one is mirrored.
+   you: where you start. mates: [kind, [x,y], defender override?]. ball: "you" | mate index.
+   lead: what happens before the freeze. zone: special grading. after: what happens once you answer.
+   ============================================================ */
+const READS = {
+  post: [
+    { title: "Shot from the wing", you: S.LE, mates: [["perim", S.LW], ["perim", S.LC], ["post", S.LB], ["perim", S.RW]], ball: 0,
+      lead: { shot: true }, prompt: "Shot goes up! Where do you go?", targets: [S.RB, [305, 70]],
+      fb: { title: "Crash the far side", why: "A shot from the side often bounces long to the far side of the rim. The high post has a clear path there. Get to the far block, find a body, box out, then grab it with two hands.", kid: "Shot from the side? I crash the far side." } },
+    { title: "Shot from the wing, you're low", you: S.LB, mates: [["perim", S.LW], ["perim", S.LC], ["post", S.LE], ["perim", S.RW]], ball: 0,
+      lead: { shot: true }, prompt: "Shot goes up! Where do you go?", targets: [S.LB, [205, 75]], hold: true,
+      fb: { title: "Stay and box out", why: "You're already in a great rebound spot, so don't run away from it. Turn, find the player next to you, put your back on them and stay low. Then go get the ball.", kid: "Close to the hoop? Find a body." } },
+    { title: "Three seconds", you: [228, 105], mates: [["perim", S.LW], ["perim", S.LC], ["post", S.LE], ["perim", S.RW]], ball: 0,
+      lead: {}, prompt: "You've been standing in the lane while the wing holds the ball. Where do you go?", targets: [S.LB, S.RB], zone: "outLane",
+      fb: { title: "Get out of the lane", why: "The lane is a no-parking zone. When we have the ball you can only stay in it for 3 seconds. Count 1… 2… and step out to a block with your feet outside the line.", kid: "1-2-out." } },
+    { title: "High–low", you: S.LE, mates: [["perim", S.LW], ["perim", S.LC], ["post", S.LB, [188, 112]], ["perim", S.RW]], ball: 0,
+      lead: { passTo: "you" }, prompt: "You caught it at the elbow. Your teammate on the block has their defender stuck on their back. Tap where the ball goes.", targetMate: 2,
+      fb: { title: "High–low pass!", why: "When a teammate seals their defender on their back, they're open right by the hoop. Pass it in low. A bounce pass is the hardest to steal.", kid: "Sealed? Feed the post." } },
+    { title: "Wing in trouble", you: S.LE, mates: [["perim", S.LW, [100, 232]], ["perim", S.LC, [62, 180]], ["post", S.LB], ["perim", S.RW]], ball: 0,
+      lead: {}, prompt: "The wing picked up the dribble and two defenders are trapping. Help them!", targets: [[140, 160], [150, 185]],
+      fb: { title: "Come meet the pass", why: "When a teammate is trapped, don't stand and watch. Step toward the ball into open space so they have an easy, short pass. Hands up!", kid: "Teammate in trouble? Come to the ball." } },
+    { title: "Steal!", you: S.LE, mates: [["perim", S.TOP], ["perim", S.LW], ["post", S.RB], ["perim", S.RW]], ball: 0,
+      lead: { steal: 1 }, prompt: "They stole the pass! Where do you go?", targets: [S.BACK], zone: "back",
+      fb: { title: "Sprint back!", why: "When the other team steals it, run back toward our basket as fast as you can. Stop the easy layup first, then find a player to guard.", kid: "Turnover? Sprint back." } }
+  ],
+  perim: [
+    { title: "Denied on the wing", you: S.LW, youDef: [120, 232], mates: [["perim", S.TOP], ["perim", S.RW], ["post", S.LE], ["post", S.RB]], ball: 0,
+      lead: {}, prompt: "Your defender is standing in the passing lane. Where do you go?", targets: [[205, 70], S.RIM],
+      after: { passFrom: 0 }, fb: { title: "Backdoor cut!", why: "If your defender is in the way of the pass, cut behind them straight to the hoop. The passer throws a bounce pass for a layup. If it's not open, come back out to the wing.", kid: "Denied? Go backdoor." } },
+    { title: "Open lane", you: S.LW, youDef: [55, 150], mates: [["perim", S.TOP], ["perim", S.RW], ["post", S.LE], ["post", S.RB]], ball: 0,
+      lead: { passTo: "you" }, prompt: "You caught it, and your defender is behind you. Nobody is between you and the hoop. Where do you go?", targets: [[215, 80], S.RIM],
+      fb: { title: "Drive to the hoop", why: "If nobody is between you and the basket, attack! Hard dribbles straight to the rim for a layup. Don't wait for the defense to recover.", kid: "Open lane? Go!" } },
+    { title: "Post is open", you: S.LW, mates: [["perim", S.LC], ["post", S.LB, [188, 112]], ["post", S.LE], ["perim", S.RW]], ball: "you",
+      lead: {}, prompt: "Your teammate on the block has their defender on their back. Tap where the ball goes.", targetMate: 1,
+      fb: { title: "Feed the post", why: "A post player who has sealed their defender is open right by the hoop. Pass it in with a bounce pass, away from the defender. Then keep moving. Don't stand and watch.", kid: "Sealed? Feed it." } },
+    { title: "Drive coming at you", you: S.LC, mates: [["perim", S.LW], ["post", S.LB], ["post", S.LE], ["perim", S.RW]], ball: 0,
+      lead: { mateMoves: { 0: [70, 115] } }, prompt: "Your teammate is driving right at you. Where do you go?", targets: [[80, 190], [70, 170]],
+      fb: { title: "Move out of the way", why: "If you stay in the corner, you're in the driver's path and your defender can guard you both. Slide up out of the corner so they can pass it back out to you.", kid: "Drive at me? I move." } },
+    { title: "Shot from the other side", you: S.RW, mates: [["perim", S.LW], ["perim", S.LC], ["post", S.LB], ["post", S.LE]], ball: 0,
+      lead: { shot: true }, prompt: "Shot goes up from the other wing! What's your job?", targets: [S.BACK], zone: "back",
+      fb: { title: "Be the safety", why: "In our overload, you're the only one out on the weak side. When the shot goes up, you get back. If we miss, you're there to stop their fast break.", kid: "Weak side wing? Get back." } },
+    { title: "Steal!", you: S.LC, mates: [["perim", S.LW], ["perim", S.TOP], ["post", S.LB], ["post", S.LE]], ball: 1,
+      lead: { steal: 0 }, prompt: "They stole the pass! Where do you go?", targets: [S.BACK], zone: "back",
+      fb: { title: "Sprint back!", why: "When the other team steals it, run back toward our basket as fast as you can. Stop the easy layup first, then find a player to guard.", kid: "Turnover? Sprint back." } }
+  ]
+};
+const defAuto = (p) => lerp(p, S.RIM, Math.min(0.55, 42 / (dist(p, S.RIM) || 1)));
+
+function runReads() {
+  const you = store.spot, kind = SPOTS[you].kind, list = READS[kind];
+  const posts = [4, 5].filter((n) => n !== you), perims = [1, 2, 3].filter((n) => n !== you);
+  let i = 0; const results = [];
+  const view = courtView(), cap = h("p", { class: "caption" }), promptEl = h("div", { class: "prompt" }), meta = h("span", { class: "meta" });
+  root.replaceChildren(h("div", { class: "col narrow" }, topBar("When It Breaks", meta), cap, view.wrap, h("div", { class: "ctrlRow" }, promptEl)));
+  function scene() {
+    stopAll(); view.clear(view.marks); view.clear(view.zones);
+    if (i >= list.length) { const n = showResults("All reads done!", results, () => go("reads")); setStars("reads:" + you, n); return; }
+    const sc = list[i], M = i % 2 ? mirror : (p) => p;
+    meta.textContent = `${i + 1} of ${list.length} · you are #${you}`;
+    cap.innerHTML = `<b class="me">${sc.title}</b><small>${kind === "post" ? "You're a post in our overload." : "You're an outside player."}</small>`;
+    const pc = posts.slice(), qc = perims.slice(), ids = [];
+    const pos = { [you]: M(sc.you) }, defs = [M(sc.youDef || defAuto(sc.you))];
+    sc.mates.forEach(([k, p, dp]) => { const id = k === "post" ? pc.shift() : qc.shift(); ids.push(id); pos[id] = M(p); defs.push(M(dp || defAuto(p))); });
+    const holderId = sc.ball === "you" ? you : ids[sc.ball];
+    view.setPlayers(pos, you); view.setDefs(defs); view.setBall(pos[holderId], true);
+    promptEl.className = "hint"; promptEl.textContent = "Watch…";
+    const L = sc.lead || {}; let ballAt = pos[holderId], holder = holderId;
+    const lead = (done) => {
+      if (L.shot) return tween(900, (k) => { const q = lerp(pos[holder], S.RIM, ease(k)); q[1] -= Math.sin(k * Math.PI) * 60; view.setBall(q, false); }, () => { ballAt = [250, 52]; done(); });
+      if (L.passTo === "you") return tween(650, (k) => view.setBall(lerp(pos[holder], pos[you], ease(k)), k >= 1), () => { holder = you; done(); });
+      if (L.steal != null) { const di = L.steal + 1; return tween(650, (k) => view.setBall(lerp(pos[holder], defs[di], ease(k)), false), () => { holder = null; ballAt = defs[di]; done(); }); }
+      if (L.mateMoves) {
+        const from = Object.assign({}, pos), tgt = {}; for (const mi in L.mateMoves) tgt[ids[mi]] = M(L.mateMoves[mi]);
+        return tween(1000, (k) => { const e = ease(k); for (const id in tgt) pos[id] = lerp(from[id], tgt[id], e); view.setPlayers(pos, you); view.setBall(pos[holder], true); }, done);
+      }
+      later(400, done);
+    };
+    later(700, () => lead(() => {
+      promptEl.className = "prompt"; promptEl.textContent = sc.prompt;
+      view.setPlayers(pos, you, { ring: true }); view.wrap.classList.add("tapping");
+      const targets = sc.targetMate != null ? [pos[ids[sc.targetMate]]] : sc.targets.map(M);
+      const onTap = (e) => {
+        view.svg.removeEventListener("pointerdown", onTap); view.wrap.classList.remove("tapping"); view.setPlayers(pos, you);
+        const p = view.toCourt(e), others = {}; ids.forEach((id) => others[id] = pos[id]);
+        if (sc.targetMate != null) delete others[ids[sc.targetMate]];
+        const r = gradeTap(p, targets, { zone: sc.zone, others, hold: sc.hold }); results.push(r);
+        tapMark(view.marks, p, GRADE[r.g].col);
+        const finish = () => {
+          if (sc.zone === "outLane") zoneLane(view.zones);
+          spotRing(view.marks, r.target);
+          if (r.g !== "great" && dist(p, r.target) > 30) arrow(view.marks, [p, r.target], "fix");
+          const again = () => { scene(); };
+          openSheet(r, sc.fb, [{ label: i === list.length - 1 ? "Finish" : "Next →", primary: true, fn: () => { i++; scene(); } }, { label: "Try again", fn: () => { results.pop(); again(); } }]);
+        };
+        if (sc.targetMate != null) { tween(650, (k) => view.setBall(lerp(pos[you], targets[0], ease(k)), k >= 1), finish); return; }
+        const fromP = pos[you], to = sc.zone === "back" ? r.target : r.g === "great" && sc.zone === "outLane" ? p : r.target;
+        tween(900, (k) => { pos[you] = lerp(fromP, to, ease(k)); view.setPlayers(pos, you); if (holder === you) view.setBall(pos[you], true); }, () => {
+          if (sc.after && sc.after.passFrom != null) tween(650, (k) => view.setBall(lerp(pos[ids[sc.after.passFrom]], pos[you], ease(k)), k >= 1), finish);
+          else finish();
+        });
+      };
+      view.svg.addEventListener("pointerdown", onTap);
+    }));
+  }
+  scene();
+}
+
+/* ---------- boot ---------- */
+try { go("home"); }
+catch (err) { root.replaceChildren(h("pre", { style: "color:#fff;white-space:pre-wrap" }, String(err && err.stack || err))); }
+</script>
+<script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js"); }</script>
+</body>
+</html>
