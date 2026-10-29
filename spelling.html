@@ -551,20 +551,35 @@ const narrator = new Audio();
 narrator.setAttribute("playsinline", "");
 narrator.preload = "auto";
 
+/* Only touchend / pointerup / click / keydown count as a tap that may start
+   audio — on a touchscreen, pointerdown and touchstart don't, and a play()
+   from them is refused. So listen on those, and keep listening until a prime
+   actually takes. */
+let priming = false;
 function primeAudio() {
-  if (audioPrimed) return;
-  audioPrimed = true;
   requestPlaybackSession();
+  if (audioPrimed || priming) return;
+  const done = () => { priming = false; audioPrimed = true; renderVoiceUI(); };
+  // Already playing a clip means it's already unlocked — and re-priming now
+  // would cut that clip off.
+  if (!narrator.paused) { done(); return; }
+  priming = true;
   try {
     narrator.src = SILENT_WAV;
     const p = narrator.play();
-    if (p && p.catch) p.catch(() => {});
-  } catch (e) {}
-  renderVoiceUI();
+    if (!p || !p.then) { done(); return; }
+    // NotAllowedError: this event didn't count as a tap — retry on the next.
+    // Anything else (AbortError when the same tap starts speech and pauses the
+    // silent clip) still means the element was unlocked.
+    p.then(done, (err) => {
+      priming = false;
+      if (!err || err.name !== "NotAllowedError") done();
+    });
+  } catch (e) { priming = false; }
 }
 requestPlaybackSession();
-["pointerdown", "touchstart", "click"].forEach((t) =>
-  document.addEventListener(t, primeAudio, { once: true, capture: true, passive: true }));
+["touchend", "pointerup", "click", "keydown"].forEach((t) =>
+  document.addEventListener(t, primeAudio, { capture: true, passive: true }));
 
 /* Must match slug() in tools/render-spelling-audio.py (would've -> wouldve). */
 function clipSlug(word) { return word.toLowerCase().replace(/[^a-z0-9]/g, ""); }
