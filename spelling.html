@@ -162,6 +162,7 @@ const LISTS = [
   {
     id: "2026-10-29",
     label: "Thu 10/29",
+    audio: true,
     words: [
       ["completely",   "The lake was completely frozen by January."],
       ["additionally", "Additionally, each player must bring a water bottle."],
@@ -500,7 +501,8 @@ function renderVoiceUI() {
       ? "⚠️ This browser has no speech support."
       : all.length === 0
         ? "⚠️ No speech voices loaded (yet) — tap Test voice."
-        : "Voice: " + (voice ? voice.name + " (" + voice.lang + ")" : "browser default") +
+        : (listHasAudio() ? "Narration: recorded for this list · backup voice: " : "Voice: ") +
+          (voice ? voice.name + " (" + voice.lang + ")" : "browser default") +
           " · " + all.length + " installed" +
           " · session: " + audioSessionLabel() + (audioPrimed ? " ✓" : "");
   }
@@ -537,14 +539,25 @@ function audioSessionLabel() {
 function requestPlaybackSession() {
   try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
 }
+
+/* Recorded narration — audio/<list id>/<slug>.m4a (word) and <slug>.s.m4a
+   (sentence), rendered by tools/render-spelling-audio.py for lists flagged
+   `audio: true`. It plays through this one element: iOS only lets a page start
+   audio without a fresh tap on an element a tap has already started, so the
+   first tap primes *this* element and every clip reuses it (that's what lets
+   the auto-advance after a correct answer speak). <audio> also ignores the
+   silent switch. Lists without the flag fall back to the device voice. */
+const narrator = new Audio();
+narrator.setAttribute("playsinline", "");
+narrator.preload = "auto";
+
 function primeAudio() {
   if (audioPrimed) return;
   audioPrimed = true;
   requestPlaybackSession();
   try {
-    const a = new Audio(SILENT_WAV);
-    a.setAttribute("playsinline", "");
-    const p = a.play();
+    narrator.src = SILENT_WAV;
+    const p = narrator.play();
     if (p && p.catch) p.catch(() => {});
   } catch (e) {}
   renderVoiceUI();
@@ -553,47 +566,106 @@ requestPlaybackSession();
 ["pointerdown", "touchstart", "click"].forEach((t) =>
   document.addEventListener(t, primeAudio, { once: true, capture: true, passive: true }));
 
+/* Must match slug() in tools/render-spelling-audio.py (would've -> wouldve). */
+function clipSlug(word) { return word.toLowerCase().replace(/[^a-z0-9]/g, ""); }
+function listHasAudio() { const l = getList(); return !!(l && l.audio); }
+function wordClip(word, kind) {  // kind: "" = the word, ".s" = its sentence
+  return listHasAudio() ? "audio/" + activeList + "/" + clipSlug(word) + kind + ".m4a" : null;
+}
+function commonClip(name) { return listHasAudio() ? "audio/common/" + name + ".m4a" : null; }
+
+/* Warm the service-worker cache so the first tap on each word is instant
+   and the list works offline once practice has started. */
+function preloadClips(words) {
+  if (!listHasAudio()) return;
+  const urls = [];
+  words.forEach(([w]) => urls.push(wordClip(w, ""), wordClip(w, ".s")));
+  // A few at a time — 40 parallel requests is a lot for a phone on weak signal.
+  let next = 0;
+  const pump = () => {
+    if (next >= urls.length) return;
+    const u = urls[next++];
+    try { fetch(u).then(pump, pump); } catch (e) { pump(); }
+  };
+  for (let k = 0; k < 4; k++) pump();
+}
+
+/* Play one clip on the shared element. onDone when it ends; onFail (fall back
+   to the device voice) if it 404s, won't decode, or play() is refused. The
+   token makes each clip settle once and lets a newer clip disown an older one:
+   swapping src rejects the old play() promise a tick later, and without the
+   token that late rejection would fire the stale chain's fallback. */
+let clipToken = 0;
+function playClip(src, onDone, onFail) {
+  const mine = ++clipToken;
+  const settle = (fn) => {
+    if (mine !== clipToken) return;
+    clipToken++;
+    clearTimeout(watchdog);
+    fn();
+  };
+  // A clip that neither ends nor errors (stalled network) shouldn't hang the chain.
+  const watchdog = setTimeout(() => settle(onDone), 12000);
+  narrator.onended = () => settle(onDone);
+  narrator.onerror = () => settle(onFail);
+  try {
+    narrator.src = src;
+    const p = narrator.play();
+    if (p && p.catch) p.catch(() => settle(onFail));
+  } catch (e) { settle(onFail); }
+}
+
 if ("speechSynthesis" in window) {
   loadVoice();
   // iOS populates voices asynchronously — refresh the picker when they land.
   speechSynthesis.onvoiceschanged = loadVoice;
 }
 
-/* Speak a sequence of parts back-to-back: [{ text, rate, gap }].
-   `gap` is the pause (ms) after that part. A newer call supersedes an older
-   one via the sequence token, so stale chains stop cleanly. */
+/* Speak a sequence of parts back-to-back: [{ text, rate, gap, clip }].
+   A part with `clip` plays the recording and falls back to speaking `text`
+   if the clip can't play. `gap` is the pause (ms) after that part. A newer
+   call supersedes an older one via the sequence token, so stale chains stop
+   cleanly. */
 let speechSeq = 0;
 function sayParts(parts) {
   try {
-    if (!("speechSynthesis" in window)) return;
     requestPlaybackSession();
     const turn = ++speechSeq;
-    speechSynthesis.cancel();
+    const hasSpeech = "speechSynthesis" in window;
+    clipToken++;
+    try { narrator.pause(); } catch (e) {}
+    if (hasSpeech) speechSynthesis.cancel();
     // Desktop Chrome: cancel()+speak() in the same tick silently drops the
     // utterance, and the engine can get stuck paused. Resume + delay fixes both.
     setTimeout(() => {
       if (turn !== speechSeq) return;
       try {
-        if (!voice) loadVoice();
+        if (hasSpeech && !voice) loadVoice();
         const step = (i) => {
           if (turn !== speechSeq || i >= parts.length) return;
           const p = parts[i];
-          try {
-            const u = new SpeechSynthesisUtterance(p.text);
-            if (voice) u.voice = voice;
-            u.rate = p.rate || 0.85;
-            u.volume = 1;
-            let moved = false;
-            const advance = () => {
-              if (moved || turn !== speechSeq) return;
-              moved = true;
-              setTimeout(() => step(i + 1), p.gap || 0);
-            };
-            u.onend = advance;
-            u.onerror = advance;
-            speechSynthesis.resume();
-            speechSynthesis.speak(u);
-          } catch (e) {}
+          let moved = false;
+          const advance = () => {
+            if (moved || turn !== speechSeq) return;
+            moved = true;
+            setTimeout(() => step(i + 1), p.gap || 0);
+          };
+          const speak = () => {
+            if (turn !== speechSeq) return;
+            if (!hasSpeech) { advance(); return; }
+            try {
+              const u = new SpeechSynthesisUtterance(p.text);
+              if (voice) u.voice = voice;
+              u.rate = p.rate || 0.85;
+              u.volume = 1;
+              u.onend = advance;
+              u.onerror = advance;
+              speechSynthesis.resume();
+              speechSynthesis.speak(u);
+            } catch (e) { advance(); }
+          };
+          if (p.clip) playClip(p.clip, advance, speak);
+          else speak();
         };
         step(0);
       } catch (e) {}
@@ -601,15 +673,15 @@ function sayParts(parts) {
   } catch (e) {}
 }
 
-function say(text, rate) { sayParts([{ text: text, rate: rate }]); }
+function say(text, rate, clip) { sayParts([{ text: text, rate: rate, clip: clip }]); }
 
 /* Word → pause → sentence → pause → word again. */
 function sayWord() {
   if (!current) return;
   sayParts([
-    { text: current[0], rate: 0.85, gap: 700 },
-    { text: current[1], rate: 0.95, gap: 400 },
-    { text: current[0], rate: 0.85 }
+    { text: current[0], rate: 0.85, gap: 700, clip: wordClip(current[0], "") },
+    { text: current[1], rate: 0.95, gap: 400, clip: wordClip(current[0], ".s") },
+    { text: current[0], rate: 0.85, clip: wordClip(current[0], "") }
   ]);
 }
 
@@ -637,6 +709,7 @@ function renderHome() {
   $("bestLine").textContent = saved && saved.best != null
     ? "Best first-try score: " + saved.best + "/" + getList().words.length
     : "No attempts yet on this list.";
+  renderVoiceUI();
 }
 
 /* ---------------- test flow ---------------- */
@@ -644,6 +717,7 @@ function startTest(words) {
   queue = [...words].sort(() => Math.random() - 0.5);
   stats = {}; firstTry = {};
   queue.forEach(([w]) => { stats[w] = { misses: 0, streak: 0 }; });
+  preloadClips(words);
   show("scrTest");
   nextWord();
 }
@@ -689,7 +763,7 @@ function nextWord() {
 
 function check() {
   const typed = $("answer").value.trim().toLowerCase();
-  if (!typed) { say(current[0]); return; }
+  if (!typed) { say(current[0], 0.85, wordClip(current[0], "")); return; }
   const word = current[0];
   const s = stats[word];
   if (!(word in firstTry)) firstTry[word] = typed === word;
@@ -764,8 +838,8 @@ function finish() {
 }
 
 /* ---------------- wiring ---------------- */
-$("btnStart").onclick = () => { hardMode = false; say("Let's practice spelling!", 1); startTest(getList().words); };
-$("btnTestVoice").onclick = () => { loadVoice(); say("Testing, one two three. If you hear this, we're good.", 1); };
+$("btnStart").onclick = () => { hardMode = false; say("Let's practice spelling!", 1, commonClip("start")); startTest(getList().words); };
+$("btnTestVoice").onclick = () => { loadVoice(); say("Testing, one two three. If you hear this, we're good.", 1, commonClip("test")); };
 $("voiceSelect").onchange = (e) => {
   const v = speechSynthesis.getVoices().find((x) => x.name === e.target.value);
   if (!v) return;
@@ -775,7 +849,7 @@ $("voiceSelect").onchange = (e) => {
 };
 $("btnPreviewVoice").onclick = () => say("vacation", 0.9);
 $("btnSpeak").onclick = () => sayWord();
-$("btnSentence").onclick = () => say(current[1], 0.95);
+$("btnSentence").onclick = () => say(current[1], 0.95, wordClip(current[0], ".s"));
 $("btnCheck").onclick = check;
 $("btnNext").onclick = nextWord;
 $("answer").addEventListener("keydown", (e) => {

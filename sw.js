@@ -1,6 +1,6 @@
 /* clartifacts service worker — offline-first
    Bump VERSION whenever any page is updated so devices pick up changes. */
-const VERSION = "clartifacts-v25";
+const VERSION = "clartifacts-v26";
 const CORE = [
   "./",
   "index.html",
@@ -32,6 +32,10 @@ self.addEventListener("fetch", (e) => {
     caches.match(e.request, { ignoreSearch: true }).then((hit) => {
       if (hit) return hit;
       return fetch(e.request).then((res) => {
+        // Don't pin a 404 (e.g. a narration clip not rendered yet) until the
+        // next VERSION bump. Cross-origin font files come back opaque with
+        // ok === false even on success, so keep caching those.
+        if (!res.ok && res.type !== "opaque") return res;
         // Best-effort runtime caching (includes fonts); failures are fine.
         const copy = res.clone();
         caches.open(VERSION).then((c) => c.put(e.request, copy)).catch(() => {});
