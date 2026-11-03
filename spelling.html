@@ -39,10 +39,6 @@
     border: 1px solid #1D3450; font-family: 'Nunito', sans-serif; }
   .chip.on { background: #7FD1FF; color: #0A1420; border-color: #7FD1FF; }
   .best { font-size: 13px; color: #9FB2C8; margin-top: 10px; }
-  select.voiceSel { width: 100%; margin-top: 10px; padding: 11px 12px; border-radius: 12px;
-    border: 1px solid #1D3450; background: #0A1420; color: #EAF2FA; min-height: 44px;
-    font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; }
-  select.voiceSel:focus { border-color: #7FD1FF; outline: none; }
   .btn { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px;
     border-radius: 14px; padding: 14px 18px; min-height: 52px; cursor: pointer;
     border: 1px solid transparent; width: 100%; }
@@ -108,10 +104,8 @@
       <div class="label">Test date</div>
       <div class="chips" id="listChips"></div>
       <div class="best" id="bestLine"></div>
-      <div class="best" id="voiceLine">Checking speech voices…</div>
-      <select class="voiceSel" id="voiceSelect" aria-label="Choose a voice"></select>
+      <div class="best" id="voiceLine"></div>
       <div class="chips" style="margin-top:8px">
-        <button class="chip" id="btnPreviewVoice">▶ Preview</button>
         <button class="chip" id="btnTestVoice">🔊 Test voice</button>
       </div>
     </div>
@@ -217,6 +211,7 @@ const LISTS = [
   {
     id: "2026-10-23",
     label: "Fri 10/23",
+    audio: true,
     words: [
       ["unpleasant", "The medicine left an unpleasant taste in his mouth."],
       ["absent",     "Three students were absent during the field trip."],
@@ -243,6 +238,7 @@ const LISTS = [
   {
     id: "2026-10-09",
     label: "Fri 10/9",
+    audio: true,
     words: [
       ["carpenter", "The carpenter measured the board before cutting it."],
       ["adore",     "My little cousins adore the new puppy."],
@@ -269,6 +265,7 @@ const LISTS = [
   {
     id: "2026-10-02",
     label: "Fri 10/2",
+    audio: true,
     words: [
       ["mischief", "The kittens got into mischief while we were out."],
       ["ceiling",  "A water stain spread across the bedroom ceiling."],
@@ -295,6 +292,7 @@ const LISTS = [
   {
     id: "2026-09-25",
     label: "Fri 9/25",
+    audio: true,
     words: [
       ["aptitude",     "She has a real aptitude for solving math puzzles."],
       ["understood",   "I understood the directions after reading them twice."],
@@ -321,6 +319,7 @@ const LISTS = [
   {
     id: "2026-09-11",
     label: "Fri 9/11",
+    audio: true,
     words: [
       ["stubborn",   "My little brother is stubborn about bedtime."],
       ["computer",   "The computer froze while I was saving my essay."],
@@ -347,6 +346,7 @@ const LISTS = [
   {
     id: "2026-09-04",
     label: "Fri 9/4",
+    audio: true,
     words: [
       ["profit",      "The bake sale made a small profit for our team."],
       ["oppose",      "Many neighbors oppose the plan to close the park."],
@@ -373,6 +373,7 @@ const LISTS = [
   {
     id: "2026-08-28",
     label: "Fri 8/28",
+    audio: true,
     words: [
       ["attic",    "We found a box of old photos in the dusty attic."],
       ["ideal",    "Sunny weather is ideal for a picnic."],
@@ -399,6 +400,7 @@ const LISTS = [
   {
     id: "2026-08-21",
     label: "Fri 8/21",
+    audio: true,
     words: [
       ["text",      "Please send me a text when you get home."],
       ["feeble",    "The lost kitten let out a feeble cry."],
@@ -425,6 +427,7 @@ const LISTS = [
   {
     id: "2026-08-14",
     label: "Fri 8/14",
+    audio: true,
     words: [
       ["pattern",  "The tile floor has a checkered pattern."],
       ["album",    "We looked through the photo album."],
@@ -522,37 +525,11 @@ function loadVoice() {
 }
 
 function renderVoiceUI() {
-  const all = speechSynthesis.getVoices();
   const vl = document.getElementById("voiceLine");
-  if (vl) {
-    vl.textContent = !("speechSynthesis" in window)
-      ? "⚠️ This browser has no speech support."
-      : all.length === 0
-        ? "⚠️ No speech voices loaded (yet) — tap Test voice."
-        : (listHasAudio() ? "Voice: " + RECORDED_VOICE + " (recorded) · menu below is the backup for older lists: " : "Voice: ") +
-          (voice ? voice.name + " (" + voice.lang + ")" : "browser default") +
-          " · " + all.length + " installed" +
-          " · session: " + audioSessionLabel() + (audioPrimed ? " ✓" : "");
-  }
-  const sel = document.getElementById("voiceSelect");
-  if (!sel) return;
-  const list = rankedVoices();
-  sel.innerHTML = "";
-  if (!list.length) {
-    const o = document.createElement("option");
-    o.textContent = "No English voices found yet";
-    sel.appendChild(o);
-    sel.disabled = true;
-    return;
-  }
-  sel.disabled = false;
-  list.forEach((v) => {
-    const o = document.createElement("option");
-    o.value = v.name;
-    o.textContent = v.name + " (" + v.lang + ")";
-    if (voice && v.name === voice.name) o.selected = true;
-    sel.appendChild(o);
-  });
+  if (!vl) return;
+  vl.textContent = listHasAudio()
+    ? "Voice: " + RECORDED_VOICE + " · session: " + audioSessionLabel() + (audioPrimed ? " ✓" : "")
+    : "⚠️ This list isn't recorded yet";
 }
 
 /* iPhone Ring/Silent switch: iOS treats web speech as "ambient" audio and
@@ -917,14 +894,6 @@ function finish() {
 /* ---------------- wiring ---------------- */
 $("btnStart").onclick = () => { hardMode = false; say("Let's practice spelling!", 1, commonClip("start")); startTest(getList().words); };
 $("btnTestVoice").onclick = () => { loadVoice(); say("Testing, one two three. If you hear this, we're good.", 1, commonClip("test")); };
-$("voiceSelect").onchange = (e) => {
-  const v = speechSynthesis.getVoices().find((x) => x.name === e.target.value);
-  if (!v) return;
-  voice = v;
-  saveVoiceName(v.name);
-  renderVoiceUI();
-};
-$("btnPreviewVoice").onclick = () => say("vacation", 0.9);
 $("btnSpeak").onclick = () => sayWord();
 $("btnSentence").onclick = () => say(current[1], 0.95, wordClip(current[0], ".s"));
 $("btnCheck").onclick = check;
