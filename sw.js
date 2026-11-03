@@ -1,6 +1,6 @@
 /* clartifacts service worker — offline-first
    Bump VERSION whenever any page is updated so devices pick up changes. */
-const VERSION = "clartifacts-v28";
+const VERSION = "clartifacts-v29";
 const CORE = [
   "./",
   "index.html",
@@ -14,7 +14,12 @@ const CORE = [
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())
+    // cache: "reload" skips the browser's HTTP cache — GitHub Pages sends
+    // max-age=600, so a plain addAll right after a deploy could store the
+    // previous page under the new VERSION and keep serving it.
+    caches.open(VERSION)
+      .then((c) => c.addAll(CORE.map((u) => new Request(u, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
   );
 });
 

@@ -117,6 +117,7 @@
     </div>
     <button class="btn primary" id="btnStart">🔊 Start practice</button>
     <a class="home" href="index.html">← home</a>
+    <div class="best" id="appVersion" style="text-align:center;opacity:.55;margin-top:6px"></div>
   </div>
 
   <!-- TEST -->
@@ -528,7 +529,7 @@ function renderVoiceUI() {
       ? "⚠️ This browser has no speech support."
       : all.length === 0
         ? "⚠️ No speech voices loaded (yet) — tap Test voice."
-        : (listHasAudio() ? "Narration: recorded for this list · backup voice: " : "Voice: ") +
+        : (listHasAudio() ? "Voice: " + RECORDED_VOICE + " (recorded) · menu below is the backup for older lists: " : "Voice: ") +
           (voice ? voice.name + " (" + voice.lang + ")" : "browser default") +
           " · " + all.length + " installed" +
           " · session: " + audioSessionLabel() + (audioPrimed ? " ✓" : "");
@@ -578,6 +579,35 @@ const narrator = new Audio();
 narrator.setAttribute("playsinline", "");
 narrator.preload = "auto";
 
+/* ?debug=1 shows an on-screen log of every narration step — for diagnosing
+   audio on a phone, where there's no console. */
+const DEBUG = /[?&]debug=1\b/.test(location.search);
+let dbgBox = null;
+function dbg(msg) {
+  if (!DEBUG) return;
+  try {
+    if (!dbgBox) {
+      dbgBox = document.createElement("pre");
+      dbgBox.style.cssText = "position:fixed;left:0;right:0;bottom:0;max-height:38vh;overflow:auto;" +
+        "margin:0;padding:6px 8px;background:rgba(0,0,0,.88);color:#9f9;font:11px/1.35 ui-monospace,monospace;" +
+        "z-index:9999;white-space:pre-wrap;pointer-events:none";
+      document.body.appendChild(dbgBox);
+    }
+    const t = (performance.now() / 1000).toFixed(2);
+    dbgBox.textContent += t + " " + msg + "\n";
+    dbgBox.scrollTop = dbgBox.scrollHeight;
+  } catch (e) {}
+}
+const shortSrc = () => (narrator.currentSrc || "").startsWith("data:") ? "silent-prime" :
+  (narrator.currentSrc || "").split("/").slice(-2).join("/");
+if (DEBUG) {
+  ["play", "playing", "pause", "ended", "error", "stalled"].forEach((ev) =>
+    narrator.addEventListener(ev, () => dbg("audio " + ev + " " + shortSrc() +
+      (ev === "error" && narrator.error ? " code=" + narrator.error.code : ""))));
+  window.addEventListener("load", () => dbg("load · list " + activeList + " audio=" + listHasAudio() +
+    " · session " + audioSessionLabel() + " · sw " + (navigator.serviceWorker && navigator.serviceWorker.controller ? "on" : "off")));
+}
+
 /* Only touchend / pointerup / click / keydown count as a tap that may start
    audio — on a touchscreen, pointerdown and touchstart don't, and a play()
    from them is refused. So listen on those, and keep listening until a prime
@@ -598,7 +628,8 @@ function primeAudio() {
     // NotAllowedError: this event didn't count as a tap — retry on the next.
     // Anything else (AbortError when the same tap starts speech and pauses the
     // silent clip) still means the element was unlocked.
-    p.then(done, (err) => {
+    p.then(() => { dbg("prime ok"); done(); }, (err) => {
+      dbg("prime rejected: " + (err && err.name));
       priming = false;
       if (!err || err.name !== "NotAllowedError") done();
     });
@@ -609,6 +640,9 @@ requestPlaybackSession();
   document.addEventListener(t, primeAudio, { capture: true, passive: true }));
 
 /* Must match slug() in tools/render-spelling-audio.py (would've -> wouldve). */
+/* Display name of the voice the clips were rendered with (audio/VOICE holds
+   the Kokoro id; update this if they're re-rendered with --voice). */
+const RECORDED_VOICE = "Heart";
 function clipSlug(word) { return word.toLowerCase().replace(/[^a-z0-9]/g, ""); }
 function listHasAudio() { const l = getList(); return !!(l && l.audio); }
 function wordClip(word, kind) {  // kind: "" = the word, ".s" = its sentence
@@ -653,7 +687,7 @@ function playClip(src, onDone, onFail) {
   try {
     narrator.src = src;
     const p = narrator.play();
-    if (p && p.catch) p.catch(() => settle(onFail));
+    if (p && p.catch) p.catch((err) => { dbg("clip play() rejected: " + (err && err.name) + " " + src); settle(onFail); });
   } catch (e) { settle(onFail); }
 }
 
@@ -696,6 +730,7 @@ function sayParts(parts) {
             if (turn !== speechSeq) return;
             if (!hasSpeech) { advance(); return; }
             try {
+              dbg((p.clip ? "FALLBACK " : "") + "device voice: " + p.text.slice(0, 30));
               const u = new SpeechSynthesisUtterance(p.text);
               if (voice) u.voice = voice;
               u.rate = p.rate || 0.85;
@@ -909,6 +944,38 @@ $("btnHard").onclick = () => {
 
 renderHome();
 </script>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}</script>
+<script>
+if ("serviceWorker" in navigator) {
+  /* A new version installs in the background, but the open page keeps running
+     the old code — and iOS resumes home-screen apps rather than relaunching
+     them, so a phone could stay a version behind indefinitely. So: check for an
+     update on open and whenever the app returns to the foreground, and reload
+     once the new version takes over — but never mid-practice. */
+  const hadController = !!navigator.serviceWorker.controller;
+  let pendingReload = false;
+  const onHome = () => !document.getElementById("scrHome").classList.contains("hidden");
+  const reloadIfHome = () => { if (pendingReload && onHome()) { pendingReload = false; location.reload(); } };
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return;  // first install: this page is already current
+    pendingReload = true;
+    reloadIfHome();
+  });
+  const checkForUpdate = () => navigator.serviceWorker.getRegistration()
+    .then((r) => r && r.update()).catch(() => {});
+  navigator.serviceWorker.register("sw.js").then(checkForUpdate).catch(() => {});
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") { checkForUpdate(); reloadIfHome(); }
+  });
+  // A reload deferred during practice happens when he's back on the home screen.
+  document.addEventListener("click", () => setTimeout(reloadIfHome, 0));
+}
+// Show which version is running (the service worker's cache name), for support.
+try {
+  caches.keys().then((ks) => {
+    const v = ks.filter((k) => k.indexOf("clartifacts-") === 0).sort().pop();
+    if (v) document.getElementById("appVersion").textContent = "app " + v.replace("clartifacts-", "");
+  }).catch(() => {});
+} catch (e) {}
+</script>
 </body>
 </html>

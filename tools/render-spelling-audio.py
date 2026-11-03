@@ -16,6 +16,7 @@ keep using the device voice.
 Run with the Kokoro venv (Python 3.12; see ~/theLab/kokoro-venv):
   ~/theLab/kokoro-venv/bin/python tools/render-spelling-audio.py
   ~/theLab/kokoro-venv/bin/python tools/render-spelling-audio.py --voice bf_emma --force
+After changing --voice, update RECORDED_VOICE in spelling.html (the name shown in the app).
 """
 import argparse, json, os, re, subprocess, sys, tempfile
 import numpy as np, soundfile as sf
