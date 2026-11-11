@@ -64,8 +64,9 @@
 
 <script>
 /* ============================================================
-   MANIFEST — add new pages here (newest anywhere; sorting is automatic)
-   category: "soccer" | "school"
+   MANIFEST — add new pages here (any order; sorting is automatic:
+   by category in CATEGORY_ORDER, then newest first within each)
+   category: "school" | "soccer" | "basketball"
    created: YYYY-MM-DD
    ============================================================ */
 const PAGES = [
@@ -105,10 +106,12 @@ const PAGES = [
 
 const FILTERS = [
   { id: "all", label: "All" },
+  { id: "school", label: "📚 School" },
   { id: "soccer", label: "⚽ Soccer" },
   { id: "basketball", label: "🏀 Basketball" },
-  { id: "school", label: "📚 School" },
 ];
+const CATEGORY_ORDER = ["school", "soccer", "basketball"];
+const catRank = (c) => { const i = CATEGORY_ORDER.indexOf(c); return i < 0 ? CATEGORY_ORDER.length : i; };
 let active = "all";
 
 const fmt = (iso) => new Date(iso + "T12:00:00").toLocaleDateString(undefined,
@@ -127,7 +130,7 @@ function render() {
 
   const list = PAGES
     .filter((p) => active === "all" || p.category === active)
-    .sort((a, b) => b.created.localeCompare(a.created));
+    .sort((a, b) => catRank(a.category) - catRank(b.category) || b.created.localeCompare(a.created));
 
   const g = document.getElementById("grid");
   g.innerHTML = "";
